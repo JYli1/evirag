@@ -1,5 +1,6 @@
 package com.evirag.document;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,4 +15,8 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
     Optional<Document> findByIdAndUserId(Long id, Long userId);
 
     List<Document> findByKnowledgeBaseIdAndUserIdOrderByCreatedAtDesc(Long knowledgeBaseId, Long userId);
+
+    long countByParseStatus(DocumentStatus parseStatus);
+
+    long countByCreatedAtBetween(Instant startInclusive, Instant endExclusive);
 }

@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.evirag.auth.dto.RegisterRequest;
+import com.evirag.admin.AdminAuditLogRepository;
 import com.evirag.chat.ChatMessageRepository;
 import com.evirag.chat.ChatSessionRepository;
 import com.evirag.document.DocumentChunkRepository;
@@ -87,6 +88,9 @@ class AuthSecurityIntegrationTest {
 
     @MockBean
     private ChatMessageRepository chatMessageRepository;
+
+    @MockBean
+    private AdminAuditLogRepository adminAuditLogRepository;
 
     @BeforeEach
     void setUp() {

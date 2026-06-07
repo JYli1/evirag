@@ -103,4 +103,22 @@ public class User {
     public void setStatus(String status) {
         this.status = status;
     }
+
+    /**
+     * 管理端更新用户状态。
+     *
+     * <p>普通测试工具仍可使用 setStatus 构造用户快照；真实业务路径使用该方法同步更新时间。</p>
+     */
+    public void changeStatus(String status) {
+        this.status = status;
+        this.updatedAt = Instant.now();
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
 }
