@@ -3,6 +3,8 @@ package com.evirag.config;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -21,6 +23,7 @@ public class AppProperties {
     /**
      * 本地上传文件保存目录；生产环境应配置到持久化磁盘或对象存储挂载目录。
      */
+    @NotBlank
     private String uploadDir = "./uploads";
 
     /**
@@ -255,17 +258,20 @@ public class AppProperties {
         /**
          * Chroma 服务主机名或 IP。
          */
+        @NotBlank
         private String host = "localhost";
 
         /**
          * Chroma HTTP 服务端口。
          */
         @Positive
+        @Max(65535)
         private int port = 8000;
 
         /**
          * 知识库向量集合名前缀，用于避免与其他项目集合冲突。
          */
+        @NotBlank
         private String collectionPrefix = "rag_kb_";
 
         public String getHost() {

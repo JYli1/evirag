@@ -99,6 +99,54 @@ class AppPropertiesTest {
     }
 
     /**
+     * 验证上传目录不能为空，避免文件模块拿到不可用的存储位置。
+     */
+    @Test
+    void rejectsBlankUploadDir() {
+        contextRunner.withPropertyValues("evirag.upload-dir= ")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasStackTraceContaining("uploadDir");
+                });
+    }
+
+    /**
+     * 验证 Chroma 主机不能为空，避免向量库客户端启动后才暴露连接配置错误。
+     */
+    @Test
+    void rejectsBlankChromaHost() {
+        contextRunner.withPropertyValues("evirag.chroma.host= ")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasStackTraceContaining("host");
+                });
+    }
+
+    /**
+     * 验证 Chroma 集合名前缀不能为空，避免不同知识库生成不可区分的集合名。
+     */
+    @Test
+    void rejectsBlankChromaCollectionPrefix() {
+        contextRunner.withPropertyValues("evirag.chroma.collection-prefix= ")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasStackTraceContaining("collectionPrefix");
+                });
+    }
+
+    /**
+     * 验证 Chroma 端口必须处于 TCP 端口合法范围内。
+     */
+    @Test
+    void rejectsOutOfRangeChromaPort() {
+        contextRunner.withPropertyValues("evirag.chroma.port=65536")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasStackTraceContaining("port");
+                });
+    }
+
+    /**
      * 测试专用配置入口，只启用 AppProperties，避免把数据库、Flyway、Security 等应用组件拉进来。
      */
     @EnableConfigurationProperties(AppProperties.class)

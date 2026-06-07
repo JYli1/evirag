@@ -97,8 +97,9 @@ CREATE TABLE chat_sessions (
     UNIQUE KEY uk_chat_sessions_id_user (id, user_id),
     KEY idx_chat_sessions_user_updated (user_id, updated_at),
     KEY idx_chat_sessions_kb (knowledge_base_id),
+    KEY idx_chat_sessions_kb_user (knowledge_base_id, user_id),
     CONSTRAINT fk_chat_sessions_user FOREIGN KEY (user_id) REFERENCES users (id),
-    CONSTRAINT fk_chat_sessions_knowledge_base FOREIGN KEY (knowledge_base_id) REFERENCES knowledge_bases (id)
+    CONSTRAINT fk_chat_sessions_knowledge_base_owner FOREIGN KEY (knowledge_base_id, user_id) REFERENCES knowledge_bases (id, user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天会话表';
 
 CREATE TABLE chat_messages (
