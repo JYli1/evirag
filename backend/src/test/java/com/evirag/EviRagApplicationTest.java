@@ -1,6 +1,8 @@
 package com.evirag;
 
 import com.evirag.auth.EmailVerificationCodeRepository;
+import com.evirag.chat.ChatMessageRepository;
+import com.evirag.chat.ChatSessionRepository;
 import com.evirag.document.DocumentChunkRepository;
 import com.evirag.document.DocumentRepository;
 import com.evirag.knowledge.KnowledgeBaseRepository;
@@ -36,6 +38,12 @@ class EviRagApplicationTest {
 
     @MockBean
     private DocumentChunkRepository documentChunkRepository;
+
+    @MockBean
+    private ChatSessionRepository chatSessionRepository;
+
+    @MockBean
+    private ChatMessageRepository chatMessageRepository;
 
     /**
      * 当 SpringBoot 能完成 Bean 扫描、配置加载和上下文初始化时，此测试会自然通过。

@@ -32,4 +32,20 @@ public class AsyncConfig {
         executor.initialize();
         return executor;
     }
+
+    /**
+     * SSE 问答专用线程池。
+     *
+     * <p>LLM 流式输出会持续占用连接，和文档索引任务分开，避免上传索引和聊天回答相互抢占线程。</p>
+     */
+    @Bean(name = "chatStreamTaskExecutor")
+    public Executor chatStreamTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(4);
+        executor.setMaxPoolSize(8);
+        executor.setQueueCapacity(200);
+        executor.setThreadNamePrefix("evirag-chat-");
+        executor.initialize();
+        return executor;
+    }
 }

@@ -4,6 +4,7 @@ import com.evirag.common.api.ApiErrorCode;
 import com.evirag.common.api.ApiResponse;
 import com.evirag.auth.AuthException;
 import com.evirag.auth.VerificationCodeException;
+import com.evirag.chat.ChatNotFoundException;
 import com.evirag.document.DocumentNotFoundException;
 import com.evirag.document.DocumentUploadException;
 import com.evirag.knowledge.KnowledgeBaseNotFoundException;
@@ -86,7 +87,7 @@ public class GlobalExceptionHandler {
     /**
      * 处理普通用户访问不存在或无权访问的知识库/文档，统一返回 404，避免泄露资源归属。
      */
-    @ExceptionHandler({KnowledgeBaseNotFoundException.class, DocumentNotFoundException.class})
+    @ExceptionHandler({KnowledgeBaseNotFoundException.class, DocumentNotFoundException.class, ChatNotFoundException.class})
     public ResponseEntity<ApiResponse<Void>> handleNotFound(RuntimeException ex) {
         return build(HttpStatus.NOT_FOUND, ApiErrorCode.BAD_REQUEST, ex.getMessage());
     }

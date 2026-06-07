@@ -198,8 +198,14 @@ public class ChromaClient {
         return response.statusCode() == 400 && body.contains("already");
     }
 
-    private String collectionKey(String collectionName) {
-        return collectionIds.getOrDefault(collectionName, collectionName);
+    private String collectionKey(String collectionName) throws Exception {
+        String cached = collectionIds.get(collectionName);
+        if (cached != null && !cached.isBlank()) {
+            return cached;
+        }
+        String id = fetchCollectionId(collectionName);
+        collectionIds.put(collectionName, id);
+        return id;
     }
 
     private String databaseBaseUrl() {

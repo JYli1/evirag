@@ -11,6 +11,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.evirag.auth.dto.RegisterRequest;
+import com.evirag.chat.ChatMessageRepository;
+import com.evirag.chat.ChatSessionRepository;
 import com.evirag.document.DocumentChunkRepository;
 import com.evirag.document.DocumentRepository;
 import com.evirag.knowledge.KnowledgeBaseRepository;
@@ -79,6 +81,12 @@ class AuthSecurityIntegrationTest {
 
     @MockBean
     private DocumentChunkRepository documentChunkRepository;
+
+    @MockBean
+    private ChatSessionRepository chatSessionRepository;
+
+    @MockBean
+    private ChatMessageRepository chatMessageRepository;
 
     @BeforeEach
     void setUp() {
