@@ -3,6 +3,7 @@ package com.evirag.document;
 import com.evirag.config.AppProperties;
 import com.evirag.knowledge.KnowledgeBaseRepository;
 import com.evirag.knowledge.KnowledgeBaseNotFoundException;
+import com.evirag.retrieval.VectorIndexService;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -15,6 +16,8 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -33,15 +36,18 @@ public class DocumentService {
     private final KnowledgeBaseRepository knowledgeBaseRepository;
     private final DocumentRepository documentRepository;
     private final AppProperties appProperties;
+    private final VectorIndexService vectorIndexService;
 
     public DocumentService(
             KnowledgeBaseRepository knowledgeBaseRepository,
             DocumentRepository documentRepository,
-            AppProperties appProperties
+            AppProperties appProperties,
+            VectorIndexService vectorIndexService
     ) {
         this.knowledgeBaseRepository = knowledgeBaseRepository;
         this.documentRepository = documentRepository;
         this.appProperties = appProperties;
+        this.vectorIndexService = vectorIndexService;
     }
 
     @Transactional
@@ -65,7 +71,9 @@ public class DocumentService {
                     file.getSize(),
                     sha256
             );
-            return DocumentResponse.from(documentRepository.save(document));
+            Document saved = documentRepository.save(document);
+            triggerIndexAfterCommit(saved.getId());
+            return DocumentResponse.from(saved);
         } catch (DocumentUploadException ex) {
             throw ex;
         } catch (Exception ex) {
@@ -143,6 +151,24 @@ public class DocumentService {
 
     private String normalizeContentType(String contentType) {
         return contentType == null || contentType.isBlank() ? null : contentType;
+    }
+
+    /**
+     * 在上传事务真正提交后再触发异步索引。
+     *
+     * <p>如果直接在事务中启动异步线程，索引线程可能先于数据库提交执行，导致按 documentId 查询不到刚创建的记录。</p>
+     */
+    private void triggerIndexAfterCommit(Long documentId) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            vectorIndexService.indexAsync(documentId);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                vectorIndexService.indexAsync(documentId);
+            }
+        });
     }
 
     private String sanitize(Exception exception) {

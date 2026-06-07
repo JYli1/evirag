@@ -1,6 +1,7 @@
 package com.evirag.config;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
@@ -63,6 +64,12 @@ public class AppProperties {
     private Chroma chroma = new Chroma();
 
     /**
+     * 文档切片配置。
+     */
+    @Valid
+    private Chunk chunk = new Chunk();
+
+    /**
      * RAG 检索与上下文拼装配置。
      */
     @Valid
@@ -122,6 +129,14 @@ public class AppProperties {
 
     public void setChroma(Chroma chroma) {
         this.chroma = chroma;
+    }
+
+    public Chunk getChunk() {
+        return chunk;
+    }
+
+    public void setChunk(Chunk chunk) {
+        this.chunk = chunk;
     }
 
     public Rag getRag() {
@@ -269,6 +284,23 @@ public class AppProperties {
         private int port = 8000;
 
         /**
+         * Chroma 租户；本地 Chroma 默认是 default_tenant。
+         */
+        @NotBlank
+        private String tenant = "default_tenant";
+
+        /**
+         * Chroma 数据库；本地 Chroma 默认是 default_database。
+         */
+        @NotBlank
+        private String database = "default_database";
+
+        /**
+         * Chroma 访问令牌；本地无鉴权部署可留空，启用鉴权或使用云服务时通过 .env 配置。
+         */
+        private String token = "";
+
+        /**
          * 知识库向量集合名前缀，用于避免与其他项目集合冲突。
          */
         @NotBlank
@@ -290,12 +322,78 @@ public class AppProperties {
             this.port = port;
         }
 
+        public String getTenant() {
+            return tenant;
+        }
+
+        public void setTenant(String tenant) {
+            this.tenant = tenant;
+        }
+
+        public String getDatabase() {
+            return database;
+        }
+
+        public void setDatabase(String database) {
+            this.database = database;
+        }
+
+        public String getToken() {
+            return token;
+        }
+
+        public void setToken(String token) {
+            this.token = token;
+        }
+
         public String getCollectionPrefix() {
             return collectionPrefix;
         }
 
         public void setCollectionPrefix(String collectionPrefix) {
             this.collectionPrefix = collectionPrefix;
+        }
+    }
+
+    /**
+     * 文本切片配置。
+     */
+    public static class Chunk {
+
+        /**
+         * 单个切片最大字符数；过长段落会按该窗口继续切分。
+         */
+        @Positive
+        private int maxChars = 1200;
+
+        /**
+         * 字符窗口之间的重叠字符数，用于减少切片边界处上下文断裂。
+         */
+        @PositiveOrZero
+        private int overlapChars = 120;
+
+        public int getMaxChars() {
+            return maxChars;
+        }
+
+        public void setMaxChars(int maxChars) {
+            this.maxChars = maxChars;
+        }
+
+        public int getOverlapChars() {
+            return overlapChars;
+        }
+
+        public void setOverlapChars(int overlapChars) {
+            this.overlapChars = overlapChars;
+        }
+
+        /**
+         * 重叠窗口必须小于最大窗口，否则字符切片时无法向前推进。
+         */
+        @AssertTrue(message = "切片重叠长度必须小于最大长度")
+        public boolean isOverlapSmallerThanMax() {
+            return overlapChars < maxChars;
         }
     }
 

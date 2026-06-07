@@ -18,6 +18,8 @@ class AppPropertiesTest {
             .withUserConfiguration(TestConfiguration.class)
             .withPropertyValues(
                     "evirag.max-file-size-mb=64",
+                    "evirag.chunk.max-chars=1500",
+                    "evirag.chunk.overlap-chars=150",
                     "evirag.rag.top-k=9",
                     "evirag.rag.low-score-threshold=0.42",
                     "evirag.rag.history-turns=6"
@@ -32,6 +34,8 @@ class AppPropertiesTest {
             AppProperties properties = context.getBean(AppProperties.class);
 
             assertThat(properties.getMaxFileSizeMb()).isEqualTo(64);
+            assertThat(properties.getChunk().getMaxChars()).isEqualTo(1500);
+            assertThat(properties.getChunk().getOverlapChars()).isEqualTo(150);
             assertThat(properties.getRag().getTopK()).isEqualTo(9);
             assertThat(properties.getRag().getLowScoreThreshold()).isEqualTo(0.42);
             assertThat(properties.getRag().getHistoryTurns()).isEqualTo(6);
@@ -143,6 +147,33 @@ class AppPropertiesTest {
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure()).hasStackTraceContaining("port");
+                });
+    }
+
+    /**
+     * 验证切片最大长度必须为正数。
+     */
+    @Test
+    void rejectsNonPositiveChunkMaxChars() {
+        contextRunner.withPropertyValues("evirag.chunk.max-chars=0")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasStackTraceContaining("maxChars");
+                });
+    }
+
+    /**
+     * 验证切片重叠长度必须小于最大长度，否则窗口切分时无法稳定向前推进。
+     */
+    @Test
+    void rejectsChunkOverlapGreaterThanOrEqualToMaxChars() {
+        contextRunner.withPropertyValues(
+                        "evirag.chunk.max-chars=100",
+                        "evirag.chunk.overlap-chars=100"
+                )
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasStackTraceContaining("overlapSmallerThanMax");
                 });
     }
 

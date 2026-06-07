@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.evirag.auth.dto.RegisterRequest;
+import com.evirag.document.DocumentChunkRepository;
 import com.evirag.document.DocumentRepository;
 import com.evirag.knowledge.KnowledgeBaseRepository;
 import com.evirag.user.User;
@@ -75,6 +76,9 @@ class AuthSecurityIntegrationTest {
 
     @MockBean
     private DocumentRepository documentRepository;
+
+    @MockBean
+    private DocumentChunkRepository documentChunkRepository;
 
     @BeforeEach
     void setUp() {

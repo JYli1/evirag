@@ -3,11 +3,13 @@ package com.evirag.document;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.evirag.config.AppProperties;
 import com.evirag.knowledge.KnowledgeBase;
 import com.evirag.knowledge.KnowledgeBaseRepository;
+import com.evirag.retrieval.VectorIndexService;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -29,16 +31,18 @@ class DocumentServiceTest {
 
     private KnowledgeBaseRepository knowledgeBaseRepository;
     private DocumentRepository documentRepository;
+    private VectorIndexService vectorIndexService;
     private DocumentService documentService;
 
     @BeforeEach
     void setUp() {
         knowledgeBaseRepository = org.mockito.Mockito.mock(KnowledgeBaseRepository.class);
         documentRepository = org.mockito.Mockito.mock(DocumentRepository.class);
+        vectorIndexService = org.mockito.Mockito.mock(VectorIndexService.class);
         AppProperties appProperties = new AppProperties();
         appProperties.setUploadDir(uploadDir.toString());
         appProperties.setMaxFileSizeMb(20);
-        documentService = new DocumentService(knowledgeBaseRepository, documentRepository, appProperties);
+        documentService = new DocumentService(knowledgeBaseRepository, documentRepository, appProperties, vectorIndexService);
     }
 
     @Test
@@ -67,6 +71,7 @@ class DocumentServiceTest {
         assertThat(response.originalFilename()).isEqualTo("contract.txt");
         assertThat(response.storedPath()).startsWith(uploadDir.toAbsolutePath().normalize().toString());
         assertThat(Files.exists(Path.of(response.storedPath()))).isTrue();
+        verify(vectorIndexService).indexAsync(100L);
     }
 
     @Test
@@ -88,7 +93,12 @@ class DocumentServiceTest {
         AppProperties appProperties = new AppProperties();
         appProperties.setUploadDir(uploadDir.toString());
         appProperties.setMaxFileSizeMb(1);
-        DocumentService limitedService = new DocumentService(knowledgeBaseRepository, documentRepository, appProperties);
+        DocumentService limitedService = new DocumentService(
+                knowledgeBaseRepository,
+                documentRepository,
+                appProperties,
+                vectorIndexService
+        );
         MockMultipartFile file = new MockMultipartFile(
                 "file",
                 "large.txt",

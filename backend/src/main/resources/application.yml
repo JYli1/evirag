@@ -58,7 +58,13 @@ evirag:
   chroma:
     host: ${CHROMA_HOST:localhost}
     port: ${CHROMA_PORT:8000}
+    tenant: ${CHROMA_TENANT:default_tenant}
+    database: ${CHROMA_DATABASE:default_database}
+    token: ${CHROMA_TOKEN:}
     collection-prefix: ${CHROMA_COLLECTION_PREFIX:rag_kb_}
+  chunk:
+    max-chars: ${CHUNK_MAX_CHARS:1200}
+    overlap-chars: ${CHUNK_OVERLAP_CHARS:120}
   rag:
     top-k: ${RAG_TOP_K:5}
     low-score-threshold: ${RAG_LOW_SCORE_THRESHOLD:0.35}
