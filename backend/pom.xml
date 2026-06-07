@@ -22,6 +22,8 @@
         <springdoc.version>2.6.0</springdoc.version>
         <testcontainers.version>1.20.4</testcontainers.version>
         <okhttp.version>4.12.0</okhttp.version>
+        <pdfbox.version>2.0.31</pdfbox.version>
+        <poi.version>5.2.5</poi.version>
     </properties>
 
     <dependencies>
@@ -77,6 +79,18 @@
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>${springdoc.version}</version>
+        </dependency>
+
+        <!-- 文档解析：PDFBox 用于 PDF 文本抽取，Apache POI 用于 DOCX 段落读取。 -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>${pdfbox.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${poi.version}</version>
         </dependency>
 
         <!-- Lombok：减少实体、DTO 和配置对象中的样板代码。 -->

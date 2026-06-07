@@ -4,6 +4,9 @@ import com.evirag.common.api.ApiErrorCode;
 import com.evirag.common.api.ApiResponse;
 import com.evirag.auth.AuthException;
 import com.evirag.auth.VerificationCodeException;
+import com.evirag.document.DocumentNotFoundException;
+import com.evirag.document.DocumentUploadException;
+import com.evirag.knowledge.KnowledgeBaseNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -70,6 +73,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(VerificationCodeException.class)
     public ResponseEntity<ApiResponse<Void>> handleVerificationCode(VerificationCodeException ex) {
         return build(HttpStatus.BAD_REQUEST, ApiErrorCode.VALIDATION_FAILED, ex.getMessage());
+    }
+
+    /**
+     * 处理知识库和文档上传的业务校验失败，例如文件类型不支持或文件过大。
+     */
+    @ExceptionHandler(DocumentUploadException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDocumentUpload(DocumentUploadException ex) {
+        return build(HttpStatus.BAD_REQUEST, ApiErrorCode.VALIDATION_FAILED, ex.getMessage());
+    }
+
+    /**
+     * 处理普通用户访问不存在或无权访问的知识库/文档，统一返回 404，避免泄露资源归属。
+     */
+    @ExceptionHandler({KnowledgeBaseNotFoundException.class, DocumentNotFoundException.class})
+    public ResponseEntity<ApiResponse<Void>> handleNotFound(RuntimeException ex) {
+        return build(HttpStatus.NOT_FOUND, ApiErrorCode.BAD_REQUEST, ex.getMessage());
     }
 
     /**

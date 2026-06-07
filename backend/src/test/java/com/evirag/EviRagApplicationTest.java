@@ -1,6 +1,8 @@
 package com.evirag;
 
 import com.evirag.auth.EmailVerificationCodeRepository;
+import com.evirag.document.DocumentRepository;
+import com.evirag.knowledge.KnowledgeBaseRepository;
 import com.evirag.user.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,6 +26,12 @@ class EviRagApplicationTest {
 
     @MockBean
     private EmailVerificationCodeRepository emailVerificationCodeRepository;
+
+    @MockBean
+    private KnowledgeBaseRepository knowledgeBaseRepository;
+
+    @MockBean
+    private DocumentRepository documentRepository;
 
     /**
      * 当 SpringBoot 能完成 Bean 扫描、配置加载和上下文初始化时，此测试会自然通过。

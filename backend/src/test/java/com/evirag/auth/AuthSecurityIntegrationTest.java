@@ -11,6 +11,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.evirag.auth.dto.RegisterRequest;
+import com.evirag.document.DocumentRepository;
+import com.evirag.knowledge.KnowledgeBaseRepository;
 import com.evirag.user.User;
 import com.evirag.user.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -67,6 +69,12 @@ class AuthSecurityIntegrationTest {
 
     @MockBean
     private VerificationEmailSender verificationEmailSender;
+
+    @MockBean
+    private KnowledgeBaseRepository knowledgeBaseRepository;
+
+    @MockBean
+    private DocumentRepository documentRepository;
 
     @BeforeEach
     void setUp() {
