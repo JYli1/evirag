@@ -1,6 +1,7 @@
 package com.evirag.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -58,6 +59,25 @@ class DotenvBootstrapTest {
             assertEquals("18080", System.getProperty("APP_PORT"));
         } finally {
             clearProperties("APP_PORT");
+        }
+    }
+
+    /**
+     * 验证宿主机 OS 环境变量优先级高于 .env。
+     * Java 不能安全修改 System.getenv()，所以测试通过可注入的 environmentReader 覆盖同一条判断分支。
+     */
+    @Test
+    void keepsExistingHostEnvironmentValue() throws IOException {
+        Path dotenv = tempDir.resolve(".env");
+        Files.writeString(dotenv, "DB_PASSWORD=from-local-dotenv", StandardCharsets.UTF_8);
+
+        clearProperties("DB_PASSWORD");
+        try {
+            DotenvBootstrap.load(dotenv, key -> "DB_PASSWORD".equals(key) ? "from-host-env" : null);
+
+            assertNull(System.getProperty("DB_PASSWORD"));
+        } finally {
+            clearProperties("DB_PASSWORD");
         }
     }
 
