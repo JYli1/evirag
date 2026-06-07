@@ -74,13 +74,16 @@ class EmailVerificationServiceTest {
     void createsCodeThatExpiresAfterFiveMinutesAndStoresOnlyHash() {
         when(repository.findLatestUsable(EMAIL, VerificationPurpose.REGISTER))
                 .thenReturn(Optional.empty());
-        when(repository.save(any(EmailVerificationCode.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.saveAndFlush(any(EmailVerificationCode.class)))
+                .thenAnswer(invocation -> {
+                    assertThat(emailSender.sentCode()).isNull();
+                    return invocation.getArgument(0);
+                });
 
         service.sendCode(EMAIL, VerificationPurpose.REGISTER, IP);
 
         ArgumentCaptor<EmailVerificationCode> captor = ArgumentCaptor.forClass(EmailVerificationCode.class);
-        verify(repository).save(captor.capture());
+        verify(repository).saveAndFlush(captor.capture());
         EmailVerificationCode saved = captor.getValue();
         assertThat(saved.getExpiresAt()).isEqualTo(Instant.parse("2026-06-08T08:05:00Z"));
         assertThat(saved.getCodeHash()).isNotEqualTo(emailSender.sentCode());

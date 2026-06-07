@@ -5,6 +5,8 @@ import com.evirag.auth.JwtService;
 import com.evirag.auth.JwtService.JwtPrincipal;
 import com.evirag.common.security.JsonAccessDeniedHandler;
 import com.evirag.common.security.JsonAuthenticationEntryPoint;
+import com.evirag.user.User;
+import com.evirag.user.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -41,6 +43,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             JwtService jwtService,
+            UserRepository userRepository,
             JsonAuthenticationEntryPoint authenticationEntryPoint,
             JsonAccessDeniedHandler accessDeniedHandler
     ) throws Exception {
@@ -64,7 +67,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
-                .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new JwtAuthenticationFilter(jwtService, userRepository), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
@@ -89,14 +92,17 @@ public class SecurityConfig {
     /**
      * Bearer Token 认证过滤器。
      *
-     * <p>无 token 时放行给后续授权规则决定是否需要登录；有 token 但无效时清空认证态，最终由 EntryPoint 输出统一 401。</p>
+     * <p>无 token 时放行给后续授权规则决定是否需要登录；有 token 但无效或用户已禁用时清空认证态，最终由 EntryPoint 输出统一 401。
+     * 权限以数据库中的当前角色为准，不信任 token 中可能已经过期的角色快照。</p>
      */
     private static class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         private final JwtService jwtService;
+        private final UserRepository userRepository;
 
-        private JwtAuthenticationFilter(JwtService jwtService) {
+        private JwtAuthenticationFilter(JwtService jwtService, UserRepository userRepository) {
             this.jwtService = jwtService;
+            this.userRepository = userRepository;
         }
 
         @Override
@@ -109,10 +115,13 @@ public class SecurityConfig {
             if (header != null && header.startsWith("Bearer ")) {
                 try {
                     JwtPrincipal principal = jwtService.parseToken(header.substring(7));
+                    User user = userRepository.findById(principal.userId())
+                            .filter(candidate -> candidate.isActive() && candidate.getEmail().equals(principal.email()))
+                            .orElseThrow(() -> new AuthException("无效令牌"));
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             principal,
                             null,
-                            List.of(new SimpleGrantedAuthority("ROLE_" + principal.role()))
+                            List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()))
                     );
                     org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
                 } catch (AuthException ignored) {

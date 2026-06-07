@@ -5,6 +5,7 @@ import com.evirag.user.User;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
@@ -73,8 +74,16 @@ public class JwtService {
             if (parts.length != 3) {
                 throw new AuthException("无效令牌");
             }
+            Map<String, Object> header = OBJECT_MAPPER.readValue(
+                    BASE64_URL_DECODER.decode(parts[0]),
+                    new TypeReference<>() {
+                    }
+            );
+            if (!"HS256".equals(header.get("alg")) || !isCompatibleJwtType(header.get("typ"))) {
+                throw new AuthException("无效令牌");
+            }
             String unsigned = parts[0] + "." + parts[1];
-            if (!sign(unsigned).equals(parts[2])) {
+            if (!signatureMatches(sign(unsigned), parts[2])) {
                 throw new AuthException("无效令牌");
             }
             Map<String, Object> payload = OBJECT_MAPPER.readValue(
@@ -111,6 +120,18 @@ public class JwtService {
         } catch (Exception ex) {
             throw new IllegalStateException("JWT 签名失败", ex);
         }
+    }
+
+    private boolean signatureMatches(String expected, String actual) {
+        try {
+            return MessageDigest.isEqual(BASE64_URL_DECODER.decode(expected), BASE64_URL_DECODER.decode(actual));
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
+    }
+
+    private boolean isCompatibleJwtType(Object typ) {
+        return typ == null || "JWT".equals(typ);
     }
 
     public record AuthJwt(String token, long expiresAt) {

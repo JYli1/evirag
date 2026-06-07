@@ -59,6 +59,7 @@ public class AuthController {
     }
 
     private String clientIp(HttpServletRequest request) {
+        // 这里只记录首个 X-Forwarded-For 作为审计线索；安全决策仍不能依赖该值，除非部署层已配置可信反向代理。
         String forwardedFor = request.getHeader("X-Forwarded-For");
         if (forwardedFor != null && !forwardedFor.isBlank()) {
             return forwardedFor.split(",")[0].trim();

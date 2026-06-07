@@ -42,10 +42,10 @@ public class AuthService {
     @Transactional
     public AuthTokenResponse register(RegisterRequest request) {
         String email = normalizeEmail(request.email());
+        emailVerificationService.verifyCode(email, VerificationPurpose.REGISTER, request.code());
         if (userRepository.existsByEmail(email)) {
             throw new AuthException("注册信息无效");
         }
-        emailVerificationService.verifyCode(email, VerificationPurpose.REGISTER, request.code());
         User user = userRepository.save(User.create(email, passwordEncoder.encode(request.password())));
         return issueToken(user);
     }

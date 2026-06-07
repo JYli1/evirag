@@ -61,7 +61,7 @@ public class EmailVerificationService {
                 ipAddress,
                 now
         );
-        repository.save(record);
+        repository.saveAndFlush(record);
         emailSender.sendVerificationCode(normalizedEmail, purpose, code);
     }
 
