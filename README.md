@@ -12,7 +12,7 @@ docs/      设计文档与实现计划
 
 ## 后端
 
-后端配置从环境变量读取。开发时可参考 `backend/.env.example` 创建 `backend/.env`，不要提交真实密钥、数据库密码或邮箱授权码。
+后端启动时会自动读取 `backend/.env`，并在 Spring Boot 解析 `application.yml` 占位符前写入 JVM 系统属性。开发时可参考 `backend/.env.example` 创建 `backend/.env`，不要提交真实密钥、数据库密码或邮箱授权码。
 
 ```powershell
 Set-Location D:\github_project\evirag\.worktrees\feat-evirag-implementation\backend

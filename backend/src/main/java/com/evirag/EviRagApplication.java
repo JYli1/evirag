@@ -1,5 +1,6 @@
 package com.evirag;
 
+import com.evirag.config.DotenvBootstrap;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -10,6 +11,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class EviRagApplication {
     public static void main(String[] args) {
+        DotenvBootstrap.load();
         SpringApplication.run(EviRagApplication.class, args);
     }
 }

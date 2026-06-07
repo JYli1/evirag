@@ -1,5 +1,5 @@
 # EviRAG 后端基础配置。
-# 当前文件只保存环境变量占位和安全默认值，真实密钥、数据库密码、邮箱授权码必须放入 backend/.env 或宿主环境变量。
+# 当前文件只保存环境变量占位和安全默认值，真实密钥、数据库密码、邮箱授权码必须放入 backend/.env。
 server:
   port: ${APP_PORT:8080}
 
@@ -40,6 +40,8 @@ springdoc:
 evirag:
   upload-dir: ${APP_UPLOAD_DIR:./uploads}
   max-file-size-mb: ${APP_MAX_FILE_SIZE_MB:20}
+  mail:
+    from: ${MAIL_FROM:}
   jwt:
     secret: ${JWT_SECRET:change-me}
     expire-minutes: ${JWT_EXPIRE_MINUTES:1440}
