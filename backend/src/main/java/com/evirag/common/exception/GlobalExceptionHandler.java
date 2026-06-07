@@ -2,6 +2,8 @@ package com.evirag.common.exception;
 
 import com.evirag.common.api.ApiErrorCode;
 import com.evirag.common.api.ApiResponse;
+import com.evirag.auth.AuthException;
+import com.evirag.auth.VerificationCodeException;
 import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -60,6 +62,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
         return build(HttpStatus.BAD_REQUEST, ApiErrorCode.BAD_REQUEST, ApiErrorCode.BAD_REQUEST.getMessage());
+    }
+
+    /**
+     * 处理验证码业务失败，例如限流、过期或错误次数达到上限。
+     */
+    @ExceptionHandler(VerificationCodeException.class)
+    public ResponseEntity<ApiResponse<Void>> handleVerificationCode(VerificationCodeException ex) {
+        return build(HttpStatus.BAD_REQUEST, ApiErrorCode.VALIDATION_FAILED, ex.getMessage());
+    }
+
+    /**
+     * 处理注册、登录、密码重置等认证业务失败；登录失败保持通用文案，避免账号枚举。
+     */
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAuth(AuthException ex) {
+        return build(HttpStatus.UNAUTHORIZED, ApiErrorCode.UNAUTHORIZED, ex.getMessage());
     }
 
     /**

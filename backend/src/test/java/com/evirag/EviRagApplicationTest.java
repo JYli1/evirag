@@ -1,7 +1,10 @@
 package com.evirag;
 
+import com.evirag.auth.EmailVerificationCodeRepository;
+import com.evirag.user.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 
 /**
  * EviRAG 后端启动上下文测试。
@@ -11,9 +14,16 @@ import org.springframework.boot.test.context.SpringBootTest;
         "spring.autoconfigure.exclude="
                 + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
                 + "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
-                + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration"
+                + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration",
+        "evirag.jwt.secret=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 })
 class EviRagApplicationTest {
+
+    @MockBean
+    private UserRepository userRepository;
+
+    @MockBean
+    private EmailVerificationCodeRepository emailVerificationCodeRepository;
 
     /**
      * 当 SpringBoot 能完成 Bean 扫描、配置加载和上下文初始化时，此测试会自然通过。
