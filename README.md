@@ -48,7 +48,7 @@ npm.cmd run build
 .\scripts\run-frontend.ps1
 ```
 
-默认访问地址：`http://127.0.0.1:5173`
+默认访问地址：`http://127.0.0.1:3000`
 
 ## 主要页面
 

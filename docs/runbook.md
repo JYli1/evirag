@@ -42,7 +42,7 @@ Copy-Item backend\.env.example backend\.env
 
 默认访问地址：
 
-- 前端：`http://127.0.0.1:5173`
+- 前端：`http://127.0.0.1:3000`
 - 后端：`http://127.0.0.1:8080`
 - Swagger：`http://127.0.0.1:8080/swagger-ui/index.html`
 
