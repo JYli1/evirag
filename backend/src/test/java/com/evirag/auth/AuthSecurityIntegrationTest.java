@@ -29,6 +29,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -147,6 +148,21 @@ class AuthSecurityIntegrationTest {
     }
 
     /**
+     * token 中的邮箱和角色已经过期时，Controller 读取到的 principal 也必须来自数据库当前用户。
+     */
+    @Test
+    void authenticatedPrincipalUsesCurrentDatabaseUserSnapshot() throws Exception {
+        User staleTokenUser = activeUser(7L, "old@example.com", "ADMIN");
+        User currentUser = activeUser(7L, "new@example.com", "USER");
+        when(userRepository.findById(7L)).thenReturn(Optional.of(currentUser));
+
+        mockMvc.perform(get("/api/test/principal").header(HttpHeaders.AUTHORIZATION, bearer(staleTokenUser)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("new@example.com"))
+                .andExpect(jsonPath("$.role").value("USER"));
+    }
+
+    /**
      * token 对应用户被禁用后，即使 token 本身还有效，也必须按未认证拒绝。
      */
     @Test
@@ -242,6 +258,11 @@ class AuthSecurityIntegrationTest {
         @GetMapping("/api/test/protected")
         java.util.Map<String, Boolean> protectedEndpoint() {
             return java.util.Map.of("ok", true);
+        }
+
+        @GetMapping("/api/test/principal")
+        java.util.Map<String, String> principalEndpoint(@AuthenticationPrincipal JwtService.JwtPrincipal principal) {
+            return java.util.Map.of("email", principal.email(), "role", principal.role());
         }
 
         @GetMapping("/api/admin/test")

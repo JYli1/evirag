@@ -1,6 +1,7 @@
 package com.evirag.auth;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.evirag.user.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -59,6 +60,19 @@ class JwtServiceTest {
         assertThatThrownBy(() -> jwtService.parseToken(token))
                 .isInstanceOf(AuthException.class)
                 .hasMessageContaining("无效令牌");
+    }
+
+    /**
+     * typ 为空按 JWT 兼容处理；该行为明确固定在测试中，避免后续误以为遗漏了 typ 校验。
+     */
+    @Test
+    void acceptsTokenWithoutTypeAsJwtCompatible() throws Exception {
+        String token = signedToken(Map.of("alg", "HS256"));
+
+        JwtService.JwtPrincipal principal = jwtService.parseToken(token);
+
+        assertThat(principal.email()).isEqualTo("user@example.com");
+        assertThat(principal.role()).isEqualTo("USER");
     }
 
     /**

@@ -116,10 +116,11 @@ public class SecurityConfig {
                 try {
                     JwtPrincipal principal = jwtService.parseToken(header.substring(7));
                     User user = userRepository.findById(principal.userId())
-                            .filter(candidate -> candidate.isActive() && candidate.getEmail().equals(principal.email()))
+                            .filter(User::isActive)
                             .orElseThrow(() -> new AuthException("无效令牌"));
+                    JwtPrincipal currentPrincipal = new JwtPrincipal(user.getId(), user.getEmail(), user.getRole());
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            principal,
+                            currentPrincipal,
                             null,
                             List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()))
                     );

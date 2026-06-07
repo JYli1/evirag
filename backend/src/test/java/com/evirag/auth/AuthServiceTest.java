@@ -3,7 +3,9 @@ package com.evirag.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 
 import com.evirag.auth.dto.AuthTokenResponse;
 import com.evirag.auth.dto.LoginRequest;
@@ -69,6 +71,23 @@ class AuthServiceTest {
         ));
         assertThat(response.token()).isNotBlank();
         assertThat(response.user().email()).isEqualTo(EMAIL);
+    }
+
+    /**
+     * 注册验证码错误时必须先失败在验证码校验处，不能继续查邮箱是否已注册。
+     */
+    @Test
+    void wrongCodeRegistrationDoesNotCheckExistingEmail() {
+        RegisterRequest request = new RegisterRequest(EMAIL, "StrongPass123", "000000");
+        doThrow(new VerificationCodeException("验证码无效或已过期"))
+                .when(emailVerificationService)
+                .verifyCode(EMAIL, VerificationPurpose.REGISTER, "000000");
+
+        assertThatThrownBy(() -> authService.register(request))
+                .isInstanceOf(VerificationCodeException.class)
+                .hasMessageContaining("验证码无效或已过期");
+
+        verify(userRepository, never()).existsByEmail(EMAIL);
     }
 
     /**
