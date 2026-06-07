@@ -39,6 +39,66 @@ class AppPropertiesTest {
     }
 
     /**
+     * 验证上传大小必须为正数，避免上传限制被错误配置为 0 或负数。
+     */
+    @Test
+    void rejectsNonPositiveUploadSize() {
+        contextRunner.withPropertyValues("evirag.max-file-size-mb=0")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasStackTraceContaining("maxFileSizeMb");
+                });
+    }
+
+    /**
+     * 验证 RAG Top-K 必须为正数，避免检索阶段拿不到任何候选文本块。
+     */
+    @Test
+    void rejectsNonPositiveRagTopK() {
+        contextRunner.withPropertyValues("evirag.rag.top-k=0")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasStackTraceContaining("topK");
+                });
+    }
+
+    /**
+     * 验证低相似度阈值必须落在 0 到 1 之间，保持相似度判断语义稳定。
+     */
+    @Test
+    void rejectsOutOfRangeLowScoreThreshold() {
+        contextRunner.withPropertyValues("evirag.rag.low-score-threshold=1.5")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasStackTraceContaining("lowScoreThreshold");
+                });
+    }
+
+    /**
+     * 验证历史轮数允许为 0，但不允许为负数。
+     */
+    @Test
+    void rejectsNegativeHistoryTurns() {
+        contextRunner.withPropertyValues("evirag.rag.history-turns=-1")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasStackTraceContaining("historyTurns");
+                });
+    }
+
+    /**
+     * 验证模型 HTTP 超时时间必须为正数，避免下游客户端得到无效超时配置。
+     */
+    @Test
+    void rejectsNonPositiveModelTimeout() {
+        contextRunner.withPropertyValues("evirag.llm.timeout-seconds=0")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasStackTraceContaining("timeoutSeconds");
+                });
+    }
+
+    /**
      * 测试专用配置入口，只启用 AppProperties，避免把数据库、Flyway、Security 等应用组件拉进来。
      */
     @EnableConfigurationProperties(AppProperties.class)

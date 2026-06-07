@@ -1,6 +1,12 @@
 package com.evirag.config;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
 /**
  * EviRAG 应用自有配置。
@@ -8,47 +14,55 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * <p>所有字段都映射自 {@code application.yml} 中的 {@code evirag.*} 命名空间。
  * DotenvBootstrap 只负责把 backend/.env 注入 JVM 系统属性；真正的类型转换、默认值解析和配置绑定由 Spring Boot 完成。</p>
  */
+@Validated
 @ConfigurationProperties(prefix = "evirag")
 public class AppProperties {
 
     /**
      * 本地上传文件保存目录；生产环境应配置到持久化磁盘或对象存储挂载目录。
      */
-    private String uploadDir;
+    private String uploadDir = "./uploads";
 
     /**
      * 单个上传文件允许的最大大小，单位为 MB；Controller 校验和上传组件应统一引用该值。
      */
-    private int maxFileSizeMb;
+    @Positive
+    private int maxFileSizeMb = 20;
 
     /**
      * 邮件业务配置；SMTP 连接参数仍由 Spring Boot 的 spring.mail.* 管理。
      */
+    @Valid
     private Mail mail = new Mail();
 
     /**
      * JWT 签名与过期配置；后续认证任务应基于该对象集中校验弱密钥。
      */
+    @Valid
     private Jwt jwt = new Jwt();
 
     /**
      * 大语言模型接口配置；API Key 不应写入注释、日志或默认状态输出。
      */
+    @Valid
     private ModelEndpoint llm = new ModelEndpoint();
 
     /**
      * Embedding 模型接口配置；通常使用 OpenAI 兼容接口。
      */
+    @Valid
     private ModelEndpoint embedding = new ModelEndpoint();
 
     /**
      * Chroma 向量库连接配置；知识库向量集合名称会基于 collectionPrefix 生成。
      */
+    @Valid
     private Chroma chroma = new Chroma();
 
     /**
      * RAG 检索与上下文拼装配置。
      */
+    @Valid
     private Rag rag = new Rag();
 
     public String getUploadDir() {
@@ -123,7 +137,7 @@ public class AppProperties {
         /**
          * 系统邮件发件人地址；为空时邮件发送模块应在启动校验或发送前给出明确错误。
          */
-        private String from;
+        private String from = "";
 
         public String getFrom() {
             return from;
@@ -142,12 +156,13 @@ public class AppProperties {
         /**
          * JWT 签名密钥；当前只做绑定，后续认证任务应拒绝空值和弱默认值。
          */
-        private String secret;
+        private String secret = "change-me";
 
         /**
          * JWT 过期时间，单位为分钟。
          */
-        private long expireMinutes;
+        @Positive
+        private long expireMinutes = 1440;
 
         public String getSecret() {
             return secret;
@@ -181,22 +196,23 @@ public class AppProperties {
         /**
          * OpenAI 兼容 API 基础地址，例如 https://api.openai.com/v1。
          */
-        private String baseUrl;
+        private String baseUrl = "";
 
         /**
          * 模型服务访问令牌；不得写入日志、错误响应或健康检查明文输出。
          */
-        private String apiKey;
+        private String apiKey = "";
 
         /**
          * 模型名称；LLM 与 Embedding 会分别绑定各自的模型。
          */
-        private String model;
+        private String model = "";
 
         /**
          * HTTP 请求超时时间，单位为秒。
          */
-        private int timeoutSeconds;
+        @Positive
+        private int timeoutSeconds = 60;
 
         public String getBaseUrl() {
             return baseUrl;
@@ -239,17 +255,18 @@ public class AppProperties {
         /**
          * Chroma 服务主机名或 IP。
          */
-        private String host;
+        private String host = "localhost";
 
         /**
          * Chroma HTTP 服务端口。
          */
-        private int port;
+        @Positive
+        private int port = 8000;
 
         /**
          * 知识库向量集合名前缀，用于避免与其他项目集合冲突。
          */
-        private String collectionPrefix;
+        private String collectionPrefix = "rag_kb_";
 
         public String getHost() {
             return host;
@@ -284,17 +301,21 @@ public class AppProperties {
         /**
          * 每次问题检索返回的候选文本块数量。
          */
-        private int topK;
+        @Positive
+        private int topK = 5;
 
         /**
          * 低相似度阈值；低于该阈值的召回结果可被标记为弱相关或拒答依据。
          */
-        private double lowScoreThreshold;
+        @DecimalMin("0.0")
+        @DecimalMax("1.0")
+        private double lowScoreThreshold = 0.35;
 
         /**
          * 多轮对话拼装提示词时保留的历史轮数。
          */
-        private int historyTurns;
+        @PositiveOrZero
+        private int historyTurns = 4;
 
         public int getTopK() {
             return topK;

@@ -25,7 +25,7 @@ CREATE TABLE email_verification_codes (
     expires_at DATETIME(6) NOT NULL COMMENT '过期时间',
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
     PRIMARY KEY (id),
-    KEY idx_email_codes_email_purpose (email, purpose),
+    KEY idx_email_codes_email_purpose_consumed (email, purpose, consumed),
     KEY idx_email_codes_expires_at (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='邮箱验证码表';
 
@@ -40,6 +40,7 @@ CREATE TABLE knowledge_bases (
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
     PRIMARY KEY (id),
     UNIQUE KEY uk_knowledge_bases_collection (chroma_collection),
+    UNIQUE KEY uk_knowledge_bases_id_user (id, user_id),
     UNIQUE KEY uk_knowledge_bases_user_name (user_id, name),
     KEY idx_knowledge_bases_user_status (user_id, status),
     CONSTRAINT fk_knowledge_bases_user FOREIGN KEY (user_id) REFERENCES users (id)
@@ -59,10 +60,11 @@ CREATE TABLE documents (
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
     PRIMARY KEY (id),
+    UNIQUE KEY uk_documents_id_kb (id, knowledge_base_id),
     KEY idx_documents_user_created (user_id, created_at),
-    KEY idx_documents_kb_status (knowledge_base_id, parse_status),
+    KEY idx_documents_kb_user_status (knowledge_base_id, user_id, parse_status),
     KEY idx_documents_sha256 (sha256),
-    CONSTRAINT fk_documents_knowledge_base FOREIGN KEY (knowledge_base_id) REFERENCES knowledge_bases (id),
+    CONSTRAINT fk_documents_knowledge_base_owner FOREIGN KEY (knowledge_base_id, user_id) REFERENCES knowledge_bases (id, user_id),
     CONSTRAINT fk_documents_user FOREIGN KEY (user_id) REFERENCES users (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文档表';
 
@@ -79,9 +81,9 @@ CREATE TABLE document_chunks (
     PRIMARY KEY (id),
     UNIQUE KEY uk_document_chunks_document_index (document_id, chunk_index),
     UNIQUE KEY uk_document_chunks_embedding_id (chroma_embedding_id),
+    KEY idx_document_chunks_document_kb (document_id, knowledge_base_id),
     KEY idx_document_chunks_kb (knowledge_base_id),
-    CONSTRAINT fk_document_chunks_document FOREIGN KEY (document_id) REFERENCES documents (id) ON DELETE CASCADE,
-    CONSTRAINT fk_document_chunks_knowledge_base FOREIGN KEY (knowledge_base_id) REFERENCES knowledge_bases (id)
+    CONSTRAINT fk_document_chunks_document_kb FOREIGN KEY (document_id, knowledge_base_id) REFERENCES documents (id, knowledge_base_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文档文本块表';
 
 CREATE TABLE chat_sessions (
@@ -92,6 +94,7 @@ CREATE TABLE chat_sessions (
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新时间',
     PRIMARY KEY (id),
+    UNIQUE KEY uk_chat_sessions_id_user (id, user_id),
     KEY idx_chat_sessions_user_updated (user_id, updated_at),
     KEY idx_chat_sessions_kb (knowledge_base_id),
     CONSTRAINT fk_chat_sessions_user FOREIGN KEY (user_id) REFERENCES users (id),
@@ -109,8 +112,9 @@ CREATE TABLE chat_messages (
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '创建时间',
     PRIMARY KEY (id),
     KEY idx_chat_messages_session_created (session_id, created_at),
+    KEY idx_chat_messages_session_user (session_id, user_id),
     KEY idx_chat_messages_user_created (user_id, created_at),
-    CONSTRAINT fk_chat_messages_session FOREIGN KEY (session_id) REFERENCES chat_sessions (id) ON DELETE CASCADE,
+    CONSTRAINT fk_chat_messages_session_user FOREIGN KEY (session_id, user_id) REFERENCES chat_sessions (id, user_id) ON DELETE CASCADE,
     CONSTRAINT fk_chat_messages_user FOREIGN KEY (user_id) REFERENCES users (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天消息表';
 
