@@ -1,6 +1,23 @@
 .worktrees/
+
+# Maven 构建产物
 backend/target/
+
+# Node 依赖与前端构建产物
 frontend/node_modules/
 frontend/dist/
+
+# 后端真实运行配置，禁止提交密钥和数据库密码
 backend/.env
 uploads/
+
+# 常见本地编辑器和系统文件
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# 日志与临时文件
+*.log
+*.tmp

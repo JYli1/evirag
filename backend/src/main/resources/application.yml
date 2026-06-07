@@ -1,0 +1,63 @@
+# EviRAG 后端基础配置。
+# 当前文件只保存环境变量占位和安全默认值，真实密钥、数据库密码、邮箱授权码必须放入 backend/.env 或宿主环境变量。
+server:
+  port: ${APP_PORT:8080}
+
+spring:
+  application:
+    name: evirag
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:rag_doc_qa}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:25}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: ${MAIL_SSL:false}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui/index.html
+
+evirag:
+  upload-dir: ${APP_UPLOAD_DIR:./uploads}
+  max-file-size-mb: ${APP_MAX_FILE_SIZE_MB:20}
+  jwt:
+    secret: ${JWT_SECRET:change-me}
+    expire-minutes: ${JWT_EXPIRE_MINUTES:1440}
+  llm:
+    base-url: ${LLM_BASE_URL:https://api.openai.com/v1}
+    api-key: ${LLM_API_KEY:}
+    model: ${LLM_MODEL:gpt-4o-mini}
+    timeout-seconds: ${LLM_TIMEOUT_SECONDS:60}
+  embedding:
+    base-url: ${EMBEDDING_BASE_URL:https://api.siliconflow.cn/v1}
+    api-key: ${EMBEDDING_API_KEY:}
+    model: ${EMBEDDING_MODEL:}
+    timeout-seconds: ${EMBEDDING_TIMEOUT_SECONDS:60}
+  chroma:
+    host: ${CHROMA_HOST:localhost}
+    port: ${CHROMA_PORT:8000}
+    collection-prefix: ${CHROMA_COLLECTION_PREFIX:rag_kb_}
+  rag:
+    top-k: ${RAG_TOP_K:5}
+    low-score-threshold: ${RAG_LOW_SCORE_THRESHOLD:0.35}
+    history-turns: ${RAG_HISTORY_TURNS:4}
