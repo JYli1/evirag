@@ -6,6 +6,7 @@ const LoginPage = () => import('@/pages/auth/LoginPage.vue');
 const RegisterPage = () => import('@/pages/auth/RegisterPage.vue');
 const ResetPasswordPage = () => import('@/pages/auth/ResetPasswordPage.vue');
 const WorkbenchPage = () => import('@/pages/workbench/WorkbenchPage.vue');
+const AdminDashboardPage = () => import('@/pages/admin/AdminDashboardPage.vue');
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -20,6 +21,12 @@ export const router = createRouter({
       component: WorkbenchPage,
       meta: { requiresAuth: true },
     },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: AdminDashboardPage,
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
   ],
 });
 
@@ -27,6 +34,9 @@ router.beforeEach((to) => {
   const authStore = useAuthStore();
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return { name: 'login', query: { redirect: to.fullPath } };
+  }
+  if (to.meta.requiresAdmin && !authStore.isAdmin) {
+    return { name: 'workbench' };
   }
   if (to.meta.public && authStore.isAuthenticated && to.name !== 'login') {
     return { name: 'workbench' };

@@ -33,6 +33,10 @@ describe('WorkbenchPage', () => {
     document.body.appendChild(root);
     const app = createApp(WorkbenchPage);
     app.use(createPinia());
+    app.component('RouterLink', {
+      props: ['to'],
+      template: '<a><slot /></a>',
+    });
     app.mount(root);
     await new Promise((resolve) => window.setTimeout(resolve));
 

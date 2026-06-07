@@ -7,6 +7,7 @@
       :active-knowledge-base-id="activeKnowledgeBaseId"
       :active-session-id="activeSessionId"
       :uploading="uploading"
+      :is-admin="authStore.isAdmin"
       @select-knowledge-base="selectKnowledgeBase"
       @create-knowledge-base="handleCreateKnowledgeBase"
       @upload-document="handleUploadDocument"

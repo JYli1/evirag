@@ -2,7 +2,10 @@
   <aside class="kb-sidebar">
     <header class="sidebar-head">
       <EviRagLogo compact />
-      <button class="ghost-button" type="button" @click="$emit('logout')" title="退出登录">退出</button>
+      <div class="head-actions">
+        <RouterLink v-if="isAdmin" class="ghost-link" to="/admin">管理</RouterLink>
+        <button class="ghost-button" type="button" @click="$emit('logout')" title="退出登录">退出</button>
+      </div>
     </header>
 
     <form class="create-kb" @submit.prevent="createKb">
@@ -69,6 +72,7 @@ defineProps<{
   activeKnowledgeBaseId: number | null;
   activeSessionId: number | null;
   uploading: boolean;
+  isAdmin: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -107,6 +111,26 @@ function createKb() {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ghost-link {
+  display: inline-grid;
+  place-items: center;
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  color: var(--color-brand-dark);
+  font-size: 12px;
+  font-weight: 900;
+  text-decoration: none;
 }
 
 .ghost-button,
