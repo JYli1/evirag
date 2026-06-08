@@ -15,6 +15,7 @@ import com.evirag.auth.VerificationEmailSender;
 import com.evirag.chat.ChatMessage;
 import com.evirag.chat.ChatMessageRepository;
 import com.evirag.chat.ChatSessionRepository;
+import com.evirag.document.Document;
 import com.evirag.document.DocumentChunkRepository;
 import com.evirag.document.DocumentRepository;
 import com.evirag.document.DocumentStatus;
@@ -113,6 +114,8 @@ class AdminControllerTest {
         when(documentRepository.countByParseStatus(DocumentStatus.FAILED)).thenReturn(1L);
         when(chatMessageRepository.countByRole(ChatMessage.ROLE_USER)).thenReturn(33L);
         when(documentRepository.countByCreatedAtBetween(any(Instant.class), any(Instant.class))).thenReturn(4L);
+        when(documentChunkRepository.sumTokenCount()).thenReturn(1200L);
+        when(chatMessageRepository.sumContentLength()).thenReturn(800L);
 
         mockMvc.perform(get("/api/admin/dashboard").header(HttpHeaders.AUTHORIZATION, bearer(admin)))
                 .andExpect(status().isOk())
@@ -123,7 +126,53 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.data.totalKnowledgeBases").value(5))
                 .andExpect(jsonPath("$.data.totalDocuments").value(12))
                 .andExpect(jsonPath("$.data.questionCount").value(33))
-                .andExpect(jsonPath("$.data.todayUploadCount").value(4));
+                .andExpect(jsonPath("$.data.todayUploadCount").value(4))
+                .andExpect(jsonPath("$.data.estimatedTotalTokens").value(1400));
+    }
+
+    @Test
+    void adminCanReadSingleUserDetail() throws Exception {
+        User admin = activeUser(2L, "admin@example.com", "ADMIN");
+        User target = activeUser(3L, "target@example.com", "USER");
+        Document document = Document.processing(
+                9L,
+                3L,
+                "contract.txt",
+                "uploads/contract.txt",
+                "text/plain",
+                128L,
+                "sha"
+        );
+        document.setId(10L);
+        document.markReady(2);
+        ChatMessage message = ChatMessage.user(11L, 3L, "这个合同的到期时间是什么？");
+        when(userRepository.findById(2L)).thenReturn(Optional.of(admin));
+        when(userRepository.findById(3L)).thenReturn(Optional.of(target));
+        when(knowledgeBaseRepository.countByUserId(3L)).thenReturn(1L);
+        when(documentRepository.countByUserId(3L)).thenReturn(2L);
+        when(documentRepository.countByUserIdAndParseStatus(3L, DocumentStatus.READY)).thenReturn(1L);
+        when(documentRepository.countByUserIdAndParseStatus(3L, DocumentStatus.FAILED)).thenReturn(1L);
+        when(documentChunkRepository.countByUserId(3L)).thenReturn(5L);
+        when(documentChunkRepository.sumTokenCountByUserId(3L)).thenReturn(160L);
+        when(chatMessageRepository.countByUserIdAndRole(3L, ChatMessage.ROLE_USER)).thenReturn(7L);
+        when(chatMessageRepository.countByUserIdAndRole(3L, ChatMessage.ROLE_ASSISTANT)).thenReturn(6L);
+        when(chatMessageRepository.sumContentLengthByUserId(3L)).thenReturn(40L);
+        when(documentRepository.findTop5ByUserIdOrderByCreatedAtDesc(3L)).thenReturn(List.of(document));
+        when(chatMessageRepository.findTop5ByUserIdOrderByCreatedAtDesc(3L)).thenReturn(List.of(message));
+
+        mockMvc.perform(get("/api/admin/users/3").header(HttpHeaders.AUTHORIZATION, bearer(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.user.email").value("target@example.com"))
+                .andExpect(jsonPath("$.data.knowledgeBaseCount").value(1))
+                .andExpect(jsonPath("$.data.documentCount").value(2))
+                .andExpect(jsonPath("$.data.chunkCount").value(5))
+                .andExpect(jsonPath("$.data.questionCount").value(7))
+                .andExpect(jsonPath("$.data.estimatedDocumentTokens").value(160))
+                .andExpect(jsonPath("$.data.estimatedChatTokens").value(10))
+                .andExpect(jsonPath("$.data.estimatedTotalTokens").value(170))
+                .andExpect(jsonPath("$.data.recentDocuments[0].originalFilename").value("contract.txt"))
+                .andExpect(jsonPath("$.data.recentMessages[0].role").value(ChatMessage.ROLE_USER));
     }
 
     @Test

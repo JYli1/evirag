@@ -14,4 +14,6 @@ public interface KnowledgeBaseRepository extends JpaRepository<KnowledgeBase, Lo
     Optional<KnowledgeBase> findByIdAndUserId(Long id, Long userId);
 
     List<KnowledgeBase> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+    long countByUserId(Long userId);
 }

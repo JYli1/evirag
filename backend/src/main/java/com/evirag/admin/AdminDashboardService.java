@@ -4,10 +4,12 @@ import com.evirag.admin.dto.AdminAuditLogResponse;
 import com.evirag.admin.dto.AdminConfigStatusResponse;
 import com.evirag.admin.dto.AdminConfigStatusResponse.ConfigStatusItem;
 import com.evirag.admin.dto.AdminDashboardResponse;
+import com.evirag.admin.dto.AdminUserDetailResponse;
 import com.evirag.admin.dto.AdminUserResponse;
 import com.evirag.admin.dto.UpdateUserStatusRequest;
 import com.evirag.chat.ChatMessage;
 import com.evirag.chat.ChatMessageRepository;
+import com.evirag.document.DocumentChunkRepository;
 import com.evirag.config.AppProperties;
 import com.evirag.document.DocumentRepository;
 import com.evirag.document.DocumentStatus;
@@ -39,6 +41,7 @@ public class AdminDashboardService {
     private final UserRepository userRepository;
     private final KnowledgeBaseRepository knowledgeBaseRepository;
     private final DocumentRepository documentRepository;
+    private final DocumentChunkRepository documentChunkRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final AdminAuditLogRepository adminAuditLogRepository;
     private final AppProperties appProperties;
@@ -50,6 +53,7 @@ public class AdminDashboardService {
             UserRepository userRepository,
             KnowledgeBaseRepository knowledgeBaseRepository,
             DocumentRepository documentRepository,
+            DocumentChunkRepository documentChunkRepository,
             ChatMessageRepository chatMessageRepository,
             AdminAuditLogRepository adminAuditLogRepository,
             AppProperties appProperties,
@@ -60,6 +64,7 @@ public class AdminDashboardService {
         this.userRepository = userRepository;
         this.knowledgeBaseRepository = knowledgeBaseRepository;
         this.documentRepository = documentRepository;
+        this.documentChunkRepository = documentChunkRepository;
         this.chatMessageRepository = chatMessageRepository;
         this.adminAuditLogRepository = adminAuditLogRepository;
         this.appProperties = appProperties;
@@ -85,6 +90,7 @@ public class AdminDashboardService {
                 documentRepository.countByParseStatus(DocumentStatus.FAILED),
                 chatMessageRepository.countByRole(ChatMessage.ROLE_USER),
                 documentRepository.countByCreatedAtBetween(todayStart(), tomorrowStart()),
+                estimatedTotalTokens(null),
                 configStatus().missingCount()
         );
     }
@@ -130,6 +136,33 @@ public class AdminDashboardService {
                 .stream()
                 .map(AdminUserResponse::from)
                 .toList();
+    }
+
+    /**
+     * 管理端单用户洞察。
+     *
+     * <p>该接口保留全局 dashboard 的总览，同时让管理员能点进用户查看该用户自己的知识库、文档、问答和估算 token 用量。</p>
+     */
+    @Transactional(readOnly = true)
+    public AdminUserDetailResponse getUserDetail(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AdminNotFoundException("用户不存在"));
+        long documentTokens = longValue(documentChunkRepository.sumTokenCountByUserId(userId));
+        long chatTokens = estimateTokens(chatMessageRepository.sumContentLengthByUserId(userId));
+        return AdminUserDetailResponse.of(
+                user,
+                knowledgeBaseRepository.countByUserId(userId),
+                documentRepository.countByUserId(userId),
+                documentRepository.countByUserIdAndParseStatus(userId, DocumentStatus.READY),
+                documentRepository.countByUserIdAndParseStatus(userId, DocumentStatus.FAILED),
+                documentChunkRepository.countByUserId(userId),
+                chatMessageRepository.countByUserIdAndRole(userId, ChatMessage.ROLE_USER),
+                chatMessageRepository.countByUserIdAndRole(userId, ChatMessage.ROLE_ASSISTANT),
+                documentTokens,
+                chatTokens,
+                documentRepository.findTop5ByUserIdOrderByCreatedAtDesc(userId),
+                chatMessageRepository.findTop5ByUserIdOrderByCreatedAtDesc(userId)
+        );
     }
 
     /**
@@ -198,6 +231,27 @@ public class AdminDashboardService {
     private Instant tomorrowStart() {
         ZoneId zoneId = ZoneId.systemDefault();
         return LocalDate.now(clock.withZone(zoneId)).plusDays(1).atStartOfDay(zoneId).toInstant();
+    }
+
+    private long estimatedTotalTokens(Long userId) {
+        long documentTokens = userId == null
+                ? longValue(documentChunkRepository.sumTokenCount())
+                : longValue(documentChunkRepository.sumTokenCountByUserId(userId));
+        Long contentLength = userId == null
+                ? chatMessageRepository.sumContentLength()
+                : chatMessageRepository.sumContentLengthByUserId(userId);
+        return documentTokens + estimateTokens(contentLength);
+    }
+
+    private long estimateTokens(Long contentLength) {
+        if (contentLength == null || contentLength <= 0) {
+            return 0;
+        }
+        return Math.max(1, (long) Math.ceil(contentLength / 4.0));
+    }
+
+    private long longValue(Long value) {
+        return value == null ? 0 : value;
     }
 
     private boolean hasText(String value) {

@@ -7,10 +7,12 @@
       :active-knowledge-base-id="activeKnowledgeBaseId"
       :active-session-id="activeSessionId"
       :uploading="uploading"
+      :deleting-document-id="deletingDocumentId"
       :is-admin="authStore.isAdmin"
       @select-knowledge-base="selectKnowledgeBase"
       @create-knowledge-base="handleCreateKnowledgeBase"
       @upload-document="handleUploadDocument"
+      @delete-document="handleDeleteDocument"
       @select-session="selectSession"
       @create-session="handleCreateSession"
       @logout="logout"
@@ -48,7 +50,7 @@ import {
   type RagCitation,
 } from '@/api/chat';
 import { apiErrorMessage } from '@/api/http';
-import { listDocuments, uploadDocument, type KnowledgeDocument } from '@/api/document';
+import { deleteDocument, listDocuments, uploadDocument, type KnowledgeDocument } from '@/api/document';
 import { createKnowledgeBase, listKnowledgeBases, type KnowledgeBase } from '@/api/knowledge';
 import ChatPanel from '@/components/chat/ChatPanel.vue';
 import EvidencePanel from '@/components/evidence/EvidencePanel.vue';
@@ -69,8 +71,10 @@ const rewrittenQuery = ref('');
 const retrievalText = ref('');
 const error = ref('');
 const uploading = ref(false);
+const deletingDocumentId = ref<number | null>(null);
 const sending = ref(false);
 let documentPollingTimer: number | undefined;
+const notifiedFailedDocumentIds = new Set<number>();
 
 const activeKnowledgeBase = computed(() =>
   knowledgeBases.value.find((item) => item.id === activeKnowledgeBaseId.value),
@@ -161,9 +165,27 @@ async function handleUploadDocument(file: File) {
     documents.value = [document, ...documents.value.filter((item) => item.id !== document.id)];
     scheduleDocumentPolling(activeKnowledgeBaseId.value);
   } catch (err) {
-    error.value = apiErrorMessage(err);
+    const message = apiErrorMessage(err);
+    error.value = message;
+    window.alert(`上传失败：${message}`);
   } finally {
     uploading.value = false;
+  }
+}
+
+async function handleDeleteDocument(document: KnowledgeDocument) {
+  deletingDocumentId.value = document.id;
+  error.value = '';
+  try {
+    await deleteDocument(document.id);
+    documents.value = documents.value.filter((item) => item.id !== document.id);
+    notifiedFailedDocumentIds.delete(document.id);
+  } catch (err) {
+    const message = apiErrorMessage(err);
+    error.value = message;
+    window.alert(`删除文档失败：${message}`);
+  } finally {
+    deletingDocumentId.value = null;
   }
 }
 
@@ -205,13 +227,33 @@ function scheduleDocumentPolling(knowledgeBaseId: number) {
   let remainingTicks = 30;
   documentPollingTimer = window.setInterval(async () => {
     remainingTicks -= 1;
+    const previousDocuments = documents.value;
     await loadDocuments(knowledgeBaseId);
+    notifyNewFailedDocuments(previousDocuments, documents.value);
     const hasProcessing = documents.value.some((item) => item.parseStatus === 'PROCESSING');
     if (!hasProcessing || remainingTicks <= 0) {
       window.clearInterval(documentPollingTimer);
       documentPollingTimer = undefined;
     }
   }, 2000);
+}
+
+function notifyNewFailedDocuments(previousDocuments: KnowledgeDocument[], nextDocuments: KnowledgeDocument[]) {
+  const previousProcessingIds = new Set(
+    previousDocuments.filter((item) => item.parseStatus === 'PROCESSING').map((item) => item.id),
+  );
+  const failedDocument = nextDocuments.find(
+    (item) =>
+      item.parseStatus === 'FAILED' &&
+      previousProcessingIds.has(item.id) &&
+      !notifiedFailedDocumentIds.has(item.id),
+  );
+  if (!failedDocument) {
+    return;
+  }
+  notifiedFailedDocumentIds.add(failedDocument.id);
+  const detail = failedDocument.rawErrorSummary || failedDocument.errorMessage || '请删除该文档后重新上传。';
+  window.alert(`文档处理失败：${failedDocument.originalFilename}\n${detail}`);
 }
 
 async function sendQuestion(content: string) {

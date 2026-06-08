@@ -33,7 +33,9 @@
       :knowledge-base-id="activeKnowledgeBaseId"
       :documents="documents"
       :uploading="uploading"
+      :deleting-document-id="deletingDocumentId"
       @upload="$emit('uploadDocument', $event)"
+      @delete="$emit('deleteDocument', $event)"
     />
 
     <section class="sidebar-section">
@@ -72,6 +74,7 @@ defineProps<{
   activeKnowledgeBaseId: number | null;
   activeSessionId: number | null;
   uploading: boolean;
+  deletingDocumentId: number | null;
   isAdmin: boolean;
 }>();
 
@@ -79,6 +82,7 @@ const emit = defineEmits<{
   selectKnowledgeBase: [id: number];
   createKnowledgeBase: [name: string];
   uploadDocument: [file: File];
+  deleteDocument: [document: KnowledgeDocument];
   selectSession: [id: number];
   createSession: [];
   logout: [];

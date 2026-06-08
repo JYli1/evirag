@@ -3,6 +3,7 @@ package com.evirag.admin;
 import com.evirag.admin.dto.AdminAuditLogResponse;
 import com.evirag.admin.dto.AdminConfigStatusResponse;
 import com.evirag.admin.dto.AdminDashboardResponse;
+import com.evirag.admin.dto.AdminUserDetailResponse;
 import com.evirag.admin.dto.AdminUserResponse;
 import com.evirag.admin.dto.UpdateUserStatusRequest;
 import com.evirag.auth.JwtService.JwtPrincipal;
@@ -48,6 +49,14 @@ public class AdminController {
     @GetMapping("/users")
     public ApiResponse<List<AdminUserResponse>> users() {
         return ApiResponse.success(adminDashboardService.listUsers());
+    }
+
+    /**
+     * 单个用户的统计和近期活动。
+     */
+    @GetMapping("/users/{userId}")
+    public ApiResponse<AdminUserDetailResponse> userDetail(@PathVariable Long userId) {
+        return ApiResponse.success(adminDashboardService.getUserDetail(userId));
     }
 
     /**

@@ -17,7 +17,9 @@ vi.mock('@/api/knowledge', () => ({
 
 vi.mock('@/api/document', () => ({
   listDocuments: vi.fn(async () => []),
+  listDocumentChunks: vi.fn(async () => []),
   uploadDocument: vi.fn(),
+  deleteDocument: vi.fn(),
 }));
 
 vi.mock('@/api/chat', () => ({

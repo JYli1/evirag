@@ -25,6 +25,7 @@ vi.mock('@/api/admin', () => ({
     failedDocuments: 1,
     questionCount: 12,
     todayUploadCount: 2,
+    estimatedTotalTokens: 340,
     missingConfigCount: 1,
   })),
   listAdminUsers: vi.fn(async () => [
@@ -52,6 +53,29 @@ vi.mock('@/api/admin', () => ({
       },
     ],
   })),
+  getAdminUserDetail: vi.fn(async () => ({
+    user: {
+      id: 1,
+      username: 'admin@example.com',
+      email: 'admin@example.com',
+      role: 'ADMIN',
+      status: 'ACTIVE',
+      createdAt: '2026-06-08T00:00:00Z',
+      updatedAt: '2026-06-08T00:00:00Z',
+    },
+    knowledgeBaseCount: 1,
+    documentCount: 2,
+    readyDocumentCount: 1,
+    failedDocumentCount: 0,
+    chunkCount: 3,
+    questionCount: 4,
+    assistantMessageCount: 4,
+    estimatedDocumentTokens: 120,
+    estimatedChatTokens: 80,
+    estimatedTotalTokens: 200,
+    recentDocuments: [],
+    recentMessages: [],
+  })),
   listAdminAuditLogs: vi.fn(async () => []),
   updateAdminUserStatus: vi.fn(),
 }));
@@ -73,6 +97,7 @@ describe('AdminDashboardPage', () => {
     expect(root.textContent).toContain('知识库数');
     expect(root.textContent).toContain('文档数');
     expect(root.textContent).toContain('问答次数');
+    expect(root.textContent).toContain('估算 Token');
     expect(root.textContent).toContain('配置状态');
 
     app.unmount();

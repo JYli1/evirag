@@ -1,8 +1,11 @@
 package com.evirag.document;
 
 import com.evirag.config.AppProperties;
+import com.evirag.knowledge.KnowledgeBase;
 import com.evirag.knowledge.KnowledgeBaseRepository;
 import com.evirag.knowledge.KnowledgeBaseNotFoundException;
+import com.evirag.retrieval.ChromaClient;
+import com.evirag.retrieval.ChromaException;
 import com.evirag.retrieval.VectorIndexService;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -15,6 +18,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -31,23 +36,30 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class DocumentService {
 
+    private static final Logger log = LoggerFactory.getLogger(DocumentService.class);
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("pdf", "txt", "docx", "md");
 
     private final KnowledgeBaseRepository knowledgeBaseRepository;
     private final DocumentRepository documentRepository;
+    private final DocumentChunkRepository documentChunkRepository;
     private final AppProperties appProperties;
     private final VectorIndexService vectorIndexService;
+    private final ChromaClient chromaClient;
 
     public DocumentService(
             KnowledgeBaseRepository knowledgeBaseRepository,
             DocumentRepository documentRepository,
+            DocumentChunkRepository documentChunkRepository,
             AppProperties appProperties,
-            VectorIndexService vectorIndexService
+            VectorIndexService vectorIndexService,
+            ChromaClient chromaClient
     ) {
         this.knowledgeBaseRepository = knowledgeBaseRepository;
         this.documentRepository = documentRepository;
+        this.documentChunkRepository = documentChunkRepository;
         this.appProperties = appProperties;
         this.vectorIndexService = vectorIndexService;
+        this.chromaClient = chromaClient;
     }
 
     @Transactional
@@ -101,6 +113,40 @@ public class DocumentService {
                 .stream()
                 .map(DocumentResponse::from)
                 .toList();
+    }
+
+    /**
+     * 返回文档切片，供前端悬停预览。
+     *
+     * <p>先按 documentId + userId 校验文档归属，再查询切片，避免用户通过切片接口越权读取他人文档内容。</p>
+     */
+    @Transactional(readOnly = true)
+    public List<DocumentChunkResponse> listChunks(Long userId, Long documentId) {
+        documentRepository.findByIdAndUserId(documentId, userId)
+                .orElseThrow(DocumentNotFoundException::new);
+        return documentChunkRepository.findByDocumentIdOrderByChunkIndexAsc(documentId)
+                .stream()
+                .map(DocumentChunkResponse::from)
+                .toList();
+    }
+
+    /**
+     * 删除文档及其切片主数据，并在事务提交后清理 Chroma 向量和本地文件。
+     *
+     * <p>Chroma 或磁盘清理失败不会阻塞业务删除：用户侧的主数据已经删除，失败细节会记录到后端日志，方便后续排查残留索引。</p>
+     */
+    @Transactional
+    public void delete(Long userId, Long documentId) {
+        Document document = documentRepository.findByIdAndUserId(documentId, userId)
+                .orElseThrow(DocumentNotFoundException::new);
+        KnowledgeBase knowledgeBase = knowledgeBaseRepository.findByIdAndUserId(document.getKnowledgeBaseId(), userId)
+                .orElseThrow(KnowledgeBaseNotFoundException::new);
+        String storedPath = document.getStoredPath();
+        String chromaCollection = knowledgeBase.getChromaCollection();
+
+        documentChunkRepository.deleteByDocumentId(document.getId());
+        documentRepository.delete(document);
+        runAfterCommit(() -> cleanupDeletedDocument(chromaCollection, document.getId(), storedPath));
     }
 
     private void validateFile(MultipartFile file) {
@@ -159,16 +205,46 @@ public class DocumentService {
      * <p>如果直接在事务中启动异步线程，索引线程可能先于数据库提交执行，导致按 documentId 查询不到刚创建的记录。</p>
      */
     private void triggerIndexAfterCommit(Long documentId) {
+        runAfterCommit(() -> vectorIndexService.indexAsync(documentId));
+    }
+
+    private void runAfterCommit(Runnable action) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            vectorIndexService.indexAsync(documentId);
+            action.run();
             return;
         }
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                vectorIndexService.indexAsync(documentId);
+                action.run();
             }
         });
+    }
+
+    private void cleanupDeletedDocument(String chromaCollection, Long documentId, String storedPath) {
+        try {
+            chromaClient.deleteByDocumentId(chromaCollection, documentId);
+        } catch (ChromaException ex) {
+            log.warn("删除文档后清理 Chroma 向量失败：documentId={}, rawSummary={}", documentId, ex.getRawSummary());
+        }
+        deleteStoredFile(documentId, storedPath);
+    }
+
+    private void deleteStoredFile(Long documentId, String storedPath) {
+        if (storedPath == null || storedPath.isBlank()) {
+            return;
+        }
+        try {
+            Path uploadRoot = Path.of(appProperties.getUploadDir()).toAbsolutePath().normalize();
+            Path filePath = Path.of(storedPath).toAbsolutePath().normalize();
+            if (!filePath.startsWith(uploadRoot)) {
+                log.warn("跳过删除上传目录外的文档文件：documentId={}, path={}", documentId, filePath);
+                return;
+            }
+            Files.deleteIfExists(filePath);
+        } catch (Exception ex) {
+            log.warn("删除文档本地文件失败：documentId={}, rawSummary={}", documentId, sanitize(ex));
+        }
     }
 
     private String sanitize(Exception exception) {

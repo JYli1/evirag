@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import com.evirag.config.AppProperties;
 import com.evirag.knowledge.KnowledgeBase;
 import com.evirag.knowledge.KnowledgeBaseRepository;
+import com.evirag.retrieval.ChromaClient;
 import com.evirag.retrieval.VectorIndexService;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,18 +32,29 @@ class DocumentServiceTest {
 
     private KnowledgeBaseRepository knowledgeBaseRepository;
     private DocumentRepository documentRepository;
+    private DocumentChunkRepository documentChunkRepository;
     private VectorIndexService vectorIndexService;
+    private ChromaClient chromaClient;
     private DocumentService documentService;
 
     @BeforeEach
     void setUp() {
         knowledgeBaseRepository = org.mockito.Mockito.mock(KnowledgeBaseRepository.class);
         documentRepository = org.mockito.Mockito.mock(DocumentRepository.class);
+        documentChunkRepository = org.mockito.Mockito.mock(DocumentChunkRepository.class);
         vectorIndexService = org.mockito.Mockito.mock(VectorIndexService.class);
+        chromaClient = org.mockito.Mockito.mock(ChromaClient.class);
         AppProperties appProperties = new AppProperties();
         appProperties.setUploadDir(uploadDir.toString());
         appProperties.setMaxFileSizeMb(20);
-        documentService = new DocumentService(knowledgeBaseRepository, documentRepository, appProperties, vectorIndexService);
+        documentService = new DocumentService(
+                knowledgeBaseRepository,
+                documentRepository,
+                documentChunkRepository,
+                appProperties,
+                vectorIndexService,
+                chromaClient
+        );
     }
 
     @Test
@@ -96,8 +108,10 @@ class DocumentServiceTest {
         DocumentService limitedService = new DocumentService(
                 knowledgeBaseRepository,
                 documentRepository,
+                documentChunkRepository,
                 appProperties,
-                vectorIndexService
+                vectorIndexService,
+                chromaClient
         );
         MockMultipartFile file = new MockMultipartFile(
                 "file",
@@ -109,5 +123,33 @@ class DocumentServiceTest {
         assertThatThrownBy(() -> limitedService.upload(1L, 1L, file))
                 .isInstanceOf(DocumentUploadException.class)
                 .hasMessageContaining("文件大小不能超过 1MB");
+    }
+
+    @Test
+    void deleteRemovesDocumentChunksChromaVectorsAndStoredFile() throws Exception {
+        Long userId = 7L;
+        Long knowledgeBaseId = 9L;
+        Path storedFile = Files.writeString(uploadDir.resolve("contract.txt"), "合同正文");
+        KnowledgeBase knowledgeBase = KnowledgeBase.create(userId, "合同库", "说明", "rag_kb_7_contract");
+        knowledgeBase.setId(knowledgeBaseId);
+        Document document = Document.processing(
+                knowledgeBaseId,
+                userId,
+                "contract.txt",
+                storedFile.toString(),
+                "text/plain",
+                Files.size(storedFile),
+                "sha"
+        );
+        document.setId(100L);
+        when(documentRepository.findByIdAndUserId(100L, userId)).thenReturn(Optional.of(document));
+        when(knowledgeBaseRepository.findByIdAndUserId(knowledgeBaseId, userId)).thenReturn(Optional.of(knowledgeBase));
+
+        documentService.delete(userId, 100L);
+
+        verify(documentChunkRepository).deleteByDocumentId(100L);
+        verify(documentRepository).delete(document);
+        verify(chromaClient).deleteByDocumentId("rag_kb_7_contract", 100L);
+        assertThat(Files.exists(storedFile)).isFalse();
     }
 }

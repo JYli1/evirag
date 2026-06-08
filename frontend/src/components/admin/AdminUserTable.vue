@@ -15,11 +15,21 @@
         <span>状态</span>
         <span>操作</span>
       </div>
-      <div v-for="user in users" :key="user.id" class="row">
+      <div
+        v-for="user in users"
+        :key="user.id"
+        class="row"
+        :class="{ selected: user.id === selectedUserId }"
+        role="button"
+        tabindex="0"
+        @click="select(user)"
+        @keydown.enter="select(user)"
+        @keydown.space.prevent="select(user)"
+      >
         <strong>{{ user.email }}</strong>
         <span>{{ user.role }}</span>
         <span class="status" :class="user.status.toLowerCase()">{{ statusText(user.status) }}</span>
-        <button type="button" :disabled="updatingUserId === user.id" @click="toggle(user)">
+        <button type="button" :disabled="updatingUserId === user.id" @click.stop="toggle(user)">
           {{ user.status === 'ACTIVE' ? '禁用' : '启用' }}
         </button>
       </div>
@@ -33,11 +43,17 @@ import type { AdminUser } from '@/api/admin';
 defineProps<{
   users: AdminUser[];
   updatingUserId: number | null;
+  selectedUserId: number | null;
 }>();
 
 const emit = defineEmits<{
+  selectUser: [user: AdminUser];
   updateStatus: [user: AdminUser, status: 'ACTIVE' | 'DISABLED'];
 }>();
+
+function select(user: AdminUser) {
+  emit('selectUser', user);
+}
 
 function toggle(user: AdminUser) {
   emit('updateStatus', user, user.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE');
@@ -100,6 +116,19 @@ header h2 {
 
 .row:last-child {
   border-bottom: 0;
+}
+
+.row:not(.head) {
+  cursor: pointer;
+}
+
+.row:not(.head):hover,
+.row.selected {
+  background: rgba(31, 122, 87, 0.06);
+}
+
+.row.selected {
+  box-shadow: inset 3px 0 0 rgba(31, 122, 87, 0.46);
 }
 
 .row.head {

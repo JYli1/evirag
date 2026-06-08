@@ -16,6 +16,12 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
 
     List<Document> findByKnowledgeBaseIdAndUserIdOrderByCreatedAtDesc(Long knowledgeBaseId, Long userId);
 
+    List<Document> findTop5ByUserIdOrderByCreatedAtDesc(Long userId);
+
+    long countByUserId(Long userId);
+
+    long countByUserIdAndParseStatus(Long userId, DocumentStatus parseStatus);
+
     long countByParseStatus(DocumentStatus parseStatus);
 
     long countByCreatedAtBetween(Instant startInclusive, Instant endExclusive);

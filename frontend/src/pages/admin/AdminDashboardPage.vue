@@ -17,9 +17,17 @@
     <AdminMetricGrid :dashboard="dashboard" />
 
     <div class="admin-grid">
-      <AdminUserTable :users="users" :updating-user-id="updatingUserId" @update-status="updateUserStatus" />
-      <ConfigStatusList :config-status="configStatus" />
+      <AdminUserTable
+        :users="users"
+        :updating-user-id="updatingUserId"
+        :selected-user-id="selectedUserId"
+        @select-user="selectUser"
+        @update-status="updateUserStatus"
+      />
+      <AdminUserDetailPanel :detail="selectedUserDetail" :loading="loadingUserDetail" />
     </div>
+
+    <ConfigStatusList class="config-wrap" :config-status="configStatus" />
 
     <section class="audit-panel">
       <header>
@@ -48,6 +56,7 @@ import { useRouter } from 'vue-router';
 import {
   getAdminConfigStatus,
   getAdminDashboard,
+  getAdminUserDetail,
   listAdminAuditLogs,
   listAdminUsers,
   updateAdminUserStatus,
@@ -55,10 +64,12 @@ import {
   type AdminConfigStatus,
   type AdminDashboard,
   type AdminUser,
+  type AdminUserDetail,
 } from '@/api/admin';
 import { apiErrorMessage } from '@/api/http';
 import EviRagLogo from '@/assets/logo/EviRagLogo.vue';
 import AdminMetricGrid from '@/components/admin/AdminMetricGrid.vue';
+import AdminUserDetailPanel from '@/components/admin/AdminUserDetailPanel.vue';
 import AdminUserTable from '@/components/admin/AdminUserTable.vue';
 import ConfigStatusList from '@/components/admin/ConfigStatusList.vue';
 import { useAuthStore } from '@/stores/authStore';
@@ -72,6 +83,9 @@ const configStatus = ref<AdminConfigStatus | null>(null);
 const auditLogs = ref<AdminAuditLog[]>([]);
 const error = ref('');
 const updatingUserId = ref<number | null>(null);
+const selectedUserId = ref<number | null>(null);
+const selectedUserDetail = ref<AdminUserDetail | null>(null);
+const loadingUserDetail = ref(false);
 
 onMounted(async () => {
   await loadAdminData();
@@ -90,8 +104,34 @@ async function loadAdminData() {
     users.value = userData;
     configStatus.value = configData;
     auditLogs.value = auditData;
+    if (userData.length > 0) {
+      const nextSelectedId = selectedUserId.value && userData.some((user) => user.id === selectedUserId.value)
+        ? selectedUserId.value
+        : userData[0].id;
+      await loadUserDetail(nextSelectedId);
+    } else {
+      selectedUserId.value = null;
+      selectedUserDetail.value = null;
+    }
   } catch (err) {
     error.value = apiErrorMessage(err);
+  }
+}
+
+async function selectUser(user: AdminUser) {
+  await loadUserDetail(user.id);
+}
+
+async function loadUserDetail(userId: number) {
+  selectedUserId.value = userId;
+  loadingUserDetail.value = true;
+  error.value = '';
+  try {
+    selectedUserDetail.value = await getAdminUserDetail(userId);
+  } catch (err) {
+    error.value = apiErrorMessage(err);
+  } finally {
+    loadingUserDetail.value = false;
   }
 }
 
@@ -103,6 +143,9 @@ async function updateUserStatus(user: AdminUser, status: 'ACTIVE' | 'DISABLED') 
     users.value = users.value.map((item) => (item.id === updated.id ? updated : item));
     auditLogs.value = await listAdminAuditLogs();
     dashboard.value = await getAdminDashboard();
+    if (selectedUserId.value === updated.id) {
+      await loadUserDetail(updated.id);
+    }
   } catch (err) {
     error.value = apiErrorMessage(err);
   } finally {
@@ -133,7 +176,8 @@ function formatDate(value: string) {
 .admin-head,
 .title-band,
 .audit-panel,
-.admin-grid {
+.admin-grid,
+.config-wrap {
   max-width: 1440px;
   width: 100%;
   margin: 0 auto;

@@ -10,6 +10,7 @@ export interface AdminDashboard {
   failedDocuments: number;
   questionCount: number;
   todayUploadCount: number;
+  estimatedTotalTokens: number;
   missingConfigCount: number;
 }
 
@@ -50,6 +51,39 @@ export interface AdminAuditLog {
   createdAt: string;
 }
 
+export interface AdminRecentDocument {
+  id: number;
+  knowledgeBaseId: number;
+  originalFilename: string;
+  parseStatus: string;
+  chunkCount: number;
+  createdAt: string;
+}
+
+export interface AdminRecentMessage {
+  id: number;
+  sessionId: number;
+  role: string;
+  preview: string;
+  createdAt: string;
+}
+
+export interface AdminUserDetail {
+  user: AdminUser;
+  knowledgeBaseCount: number;
+  documentCount: number;
+  readyDocumentCount: number;
+  failedDocumentCount: number;
+  chunkCount: number;
+  questionCount: number;
+  assistantMessageCount: number;
+  estimatedDocumentTokens: number;
+  estimatedChatTokens: number;
+  estimatedTotalTokens: number;
+  recentDocuments: AdminRecentDocument[];
+  recentMessages: AdminRecentMessage[];
+}
+
 export async function getAdminDashboard() {
   const response = await http.get<ApiResponse<AdminDashboard>>('/admin/dashboard');
   return response.data.data;
@@ -58,6 +92,11 @@ export async function getAdminDashboard() {
 export async function listAdminUsers() {
   const response = await http.get<ApiResponse<AdminUser[]>>('/admin/users');
   return response.data.data ?? [];
+}
+
+export async function getAdminUserDetail(userId: number) {
+  const response = await http.get<ApiResponse<AdminUserDetail>>(`/admin/users/${userId}`);
+  return response.data.data;
 }
 
 export async function updateAdminUserStatus(userId: number, status: 'ACTIVE' | 'DISABLED') {

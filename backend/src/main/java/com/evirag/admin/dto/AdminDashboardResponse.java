@@ -15,6 +15,7 @@ public record AdminDashboardResponse(
         long failedDocuments,
         long questionCount,
         long todayUploadCount,
+        long estimatedTotalTokens,
         long missingConfigCount
 ) {
 }

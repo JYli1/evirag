@@ -18,6 +18,20 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, Lo
 
     long countByKnowledgeBaseId(Long knowledgeBaseId);
 
+    /**
+     * 管理端按用户统计切片数量。
+     *
+     * <p>DocumentChunk 不直接保存 userId，因此通过 documents 表确认归属。</p>
+     */
+    @Query("select count(chunk) from DocumentChunk chunk, Document doc where chunk.documentId = doc.id and doc.userId = :userId")
+    long countByUserId(@Param("userId") Long userId);
+
+    @Query("select sum(chunk.tokenCount) from DocumentChunk chunk")
+    Long sumTokenCount();
+
+    @Query("select sum(chunk.tokenCount) from DocumentChunk chunk, Document doc where chunk.documentId = doc.id and doc.userId = :userId")
+    Long sumTokenCountByUserId(@Param("userId") Long userId);
+
     @Transactional
     @Modifying
     @Query("delete from DocumentChunk chunk where chunk.documentId = :documentId")

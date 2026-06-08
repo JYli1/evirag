@@ -19,10 +19,28 @@ export interface KnowledgeDocument {
   updatedAt: string;
 }
 
+export interface DocumentChunk {
+  id: number;
+  documentId: number;
+  knowledgeBaseId: number;
+  chunkIndex: number;
+  content: string;
+  sourceTitle: string | null;
+  sourceLocation: string | null;
+  tokenCount: number | null;
+  metadata: string | null;
+  createdAt: string;
+}
+
 export async function listDocuments(knowledgeBaseId: number) {
   const response = await http.get<ApiResponse<KnowledgeDocument[]>>(
     `/knowledge-bases/${knowledgeBaseId}/documents`,
   );
+  return response.data.data ?? [];
+}
+
+export async function listDocumentChunks(documentId: number) {
+  const response = await http.get<ApiResponse<DocumentChunk[]>>(`/documents/${documentId}/chunks`);
   return response.data.data ?? [];
 }
 
@@ -35,4 +53,8 @@ export async function uploadDocument(knowledgeBaseId: number, file: File) {
     { headers: { 'Content-Type': 'multipart/form-data' } },
   );
   return response.data.data;
+}
+
+export async function deleteDocument(documentId: number) {
+  await http.delete<ApiResponse<void>>(`/documents/${documentId}`);
 }

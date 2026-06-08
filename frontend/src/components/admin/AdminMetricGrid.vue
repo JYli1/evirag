@@ -22,6 +22,7 @@ const metrics = computed(() => [
   { label: '知识库数', value: props.dashboard?.totalKnowledgeBases ?? 0, hint: '所有用户知识库总量' },
   { label: '文档数', value: props.dashboard?.totalDocuments ?? 0, hint: `${props.dashboard?.readyDocuments ?? 0} 个已就绪` },
   { label: '问答次数', value: props.dashboard?.questionCount ?? 0, hint: '按用户消息统计' },
+  { label: '估算 Token', value: props.dashboard?.estimatedTotalTokens ?? 0, hint: '文档切片 + 对话内容估算' },
   { label: '今日上传', value: props.dashboard?.todayUploadCount ?? 0, hint: '按文档创建时间统计' },
   { label: '配置缺失', value: props.dashboard?.missingConfigCount ?? 0, hint: '只统计必填配置' },
 ]);
@@ -30,7 +31,7 @@ const metrics = computed(() => [
 <style scoped>
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(120px, 1fr));
+  grid-template-columns: repeat(7, minmax(120px, 1fr));
   gap: 12px;
 }
 
@@ -65,7 +66,7 @@ const metrics = computed(() => [
 
 @media (max-width: 1160px) {
   .metric-grid {
-    grid-template-columns: repeat(3, minmax(140px, 1fr));
+    grid-template-columns: repeat(4, minmax(140px, 1fr));
   }
 }
 
