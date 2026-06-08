@@ -62,26 +62,42 @@ public class ChunkService {
         for (TextBlock block : blocks) {
             if (block.heading()) {
                 currentTitle = block.text();
+                currentLocation = appendToCurrent(chunks, currentText, block.text(), currentTitle, block.location(), currentLocation);
                 continue;
             }
             if (block.text().length() > maxChars) {
                 flushCurrent(chunks, currentText, currentTitle, currentLocation);
                 addWindowChunks(chunks, block, currentTitle);
+                currentLocation = null;
                 continue;
             }
-            if (!currentText.isEmpty() && currentText.length() + 2 + block.text().length() > maxChars) {
-                flushCurrent(chunks, currentText, currentTitle, currentLocation);
-            }
-            if (currentText.isEmpty()) {
-                currentLocation = block.location();
-            } else {
-                currentText.append(System.lineSeparator()).append(System.lineSeparator());
-            }
-            currentText.append(block.text());
+            currentLocation = appendToCurrent(chunks, currentText, block.text(), currentTitle, block.location(), currentLocation);
         }
 
         flushCurrent(chunks, currentText, currentTitle, currentLocation);
         return chunks;
+    }
+
+    private String appendToCurrent(
+            List<TextChunk> chunks,
+            StringBuilder currentText,
+            String text,
+            String currentTitle,
+            String blockLocation,
+            String currentLocation
+    ) {
+        if (!currentText.isEmpty() && currentText.length() + 2 + text.length() > maxChars) {
+            flushCurrent(chunks, currentText, currentTitle, currentLocation);
+            currentLocation = null;
+        }
+        if (currentText.isEmpty()) {
+            currentLocation = blockLocation;
+        }
+        if (!currentText.isEmpty()) {
+            currentText.append(System.lineSeparator()).append(System.lineSeparator());
+        }
+        currentText.append(text);
+        return currentLocation;
     }
 
     /**

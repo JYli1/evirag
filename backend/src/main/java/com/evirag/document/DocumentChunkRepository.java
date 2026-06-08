@@ -16,6 +16,8 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, Lo
 
     List<DocumentChunk> findByDocumentIdOrderByChunkIndexAsc(Long documentId);
 
+    long countByKnowledgeBaseId(Long knowledgeBaseId);
+
     @Transactional
     @Modifying
     @Query("delete from DocumentChunk chunk where chunk.documentId = :documentId")

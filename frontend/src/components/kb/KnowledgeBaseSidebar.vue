@@ -39,7 +39,7 @@
     <section class="sidebar-section">
       <div class="session-head">
         <span>会话</span>
-        <button type="button" :disabled="!activeKnowledgeBaseId" @click="$emit('createSession')">+</button>
+        <button type="button" @click="$emit('createSession')">+</button>
       </div>
       <button
         v-for="session in sessions"

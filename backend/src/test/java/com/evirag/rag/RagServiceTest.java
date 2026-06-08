@@ -76,8 +76,10 @@ class RagServiceTest {
         ArgumentCaptor<Map<String, Object>> whereCaptor = ArgumentCaptor.forClass(Map.class);
         verify(chromaClient).query(eq("kb_collection"), eq(List.of(0.1, 0.2, 0.3)), eq(3), whereCaptor.capture());
         assertThat(whereCaptor.getValue())
-                .containsEntry("user_id", 7L)
-                .containsEntry("knowledge_base_id", 9L);
+                .containsEntry("$and", List.of(
+                        Map.of("user_id", 7L),
+                        Map.of("knowledge_base_id", 9L)
+                ));
 
         ArgumentCaptor<List<LlmMessage>> promptCaptor = ArgumentCaptor.forClass(List.class);
         verify(llmClient).complete(promptCaptor.capture());

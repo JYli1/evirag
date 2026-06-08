@@ -47,4 +47,18 @@ class ChunkServiceTest {
 
         assertThat(chunks).isEmpty();
     }
+
+    @Test
+    void indexesHeadingOnlyMarkdownAsSearchableText() {
+        String text = "# 李松涛22岁\n# 李松涛住在601寝室\n# 李松涛是信息安全专业";
+        ChunkService chunkService = new ChunkService(1200, 120);
+
+        List<TextChunk> chunks = chunkService.split(ParsedDocument.success(text, List.of(), List.of()));
+
+        assertThat(chunks).hasSize(1);
+        assertThat(chunks.get(0).text())
+                .contains("李松涛22岁")
+                .contains("李松涛住在601寝室")
+                .contains("李松涛是信息安全专业");
+    }
 }

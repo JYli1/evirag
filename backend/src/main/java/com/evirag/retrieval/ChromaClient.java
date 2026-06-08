@@ -108,6 +108,7 @@ public class ChromaClient {
             Map<String, Object> where
     ) {
         try {
+            String collectionKey = collectionKey(collectionName);
             Map<String, Object> body = new LinkedHashMap<>();
             body.put("query_embeddings", List.of(embedding));
             body.put("n_results", topK);
@@ -116,13 +117,16 @@ public class ChromaClient {
 
             HttpResponse<String> response = sendJson(
                     "POST",
-                    "/collections/" + encode(collectionKey(collectionName)) + "/query",
+                    "/collections/" + encode(collectionKey) + "/query",
                     body,
                     Duration.ofSeconds(30)
             );
             requireSuccess(response, "查询 Chroma 向量失败");
             return parseQueryResults(response.body());
         } catch (ChromaException ex) {
+            if (isCollectionNotFound(ex)) {
+                return List.of();
+            }
             throw ex;
         } catch (Exception ex) {
             throw new ChromaException(sanitize(ex), ex);
@@ -196,6 +200,11 @@ public class ChromaClient {
     private boolean isAlreadyExists(HttpResponse<String> response) {
         String body = response.body() == null ? "" : response.body().toLowerCase();
         return response.statusCode() == 400 && body.contains("already");
+    }
+
+    private boolean isCollectionNotFound(ChromaException exception) {
+        String rawSummary = exception.getRawSummary() == null ? "" : exception.getRawSummary();
+        return rawSummary.contains("HTTP 404") && rawSummary.toLowerCase().contains("collection");
     }
 
     private String collectionKey(String collectionName) throws Exception {

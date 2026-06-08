@@ -2,7 +2,7 @@ import { http, tokenStorage, type ApiResponse } from './http';
 
 export interface ChatSession {
   id: number;
-  knowledgeBaseId: number;
+  knowledgeBaseId: number | null;
   title: string;
   createdAt: string;
   updatedAt: string;
@@ -46,13 +46,15 @@ export interface RagStreamHandlers {
   onError?: (payload: { stage?: string; message?: string; rawSummary?: string }) => void;
 }
 
-export async function listSessions(knowledgeBaseId: number) {
-  const response = await http.get<ApiResponse<ChatSession[]>>(`/kbs/${knowledgeBaseId}/sessions`);
+export async function listSessions(knowledgeBaseId?: number | null) {
+  const url = knowledgeBaseId ? `/kbs/${knowledgeBaseId}/sessions` : '/sessions';
+  const response = await http.get<ApiResponse<ChatSession[]>>(url);
   return response.data.data ?? [];
 }
 
-export async function createSession(knowledgeBaseId: number, title?: string) {
-  const response = await http.post<ApiResponse<ChatSession>>(`/kbs/${knowledgeBaseId}/sessions`, { title });
+export async function createSession(knowledgeBaseId?: number | null, title?: string) {
+  const url = knowledgeBaseId ? `/kbs/${knowledgeBaseId}/sessions` : '/sessions';
+  const response = await http.post<ApiResponse<ChatSession>>(url, { title });
   return response.data.data;
 }
 

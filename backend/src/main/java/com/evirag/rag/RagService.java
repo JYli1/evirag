@@ -69,8 +69,10 @@ public class RagService {
     private List<RagCitation> retrieve(RagRequest request, String rewrittenQuery) {
         List<Double> embedding = embeddingClient.embedOne(rewrittenQuery);
         Map<String, Object> where = new LinkedHashMap<>();
-        where.put("user_id", request.userId());
-        where.put("knowledge_base_id", request.knowledgeBaseId());
+        where.put("$and", List.of(
+                Map.of("user_id", request.userId()),
+                Map.of("knowledge_base_id", request.knowledgeBaseId())
+        ));
         return chromaClient.query(request.chromaCollection(), embedding, request.topK(), where)
                 .stream()
                 .map(result -> toCitation(result, request.lowScoreThreshold()))

@@ -53,7 +53,7 @@ public class ChatSession {
 
     private static String normalizeTitle(String title) {
         if (title == null || title.isBlank()) {
-            return "新的知识库对话";
+            return "新的对话";
         }
         return title.trim();
     }

@@ -41,6 +41,13 @@ public class ChatController {
         return ApiResponse.success(chatService.listSessions(principal.userId(), knowledgeBaseId));
     }
 
+    @GetMapping("/sessions")
+    public ApiResponse<List<ChatSessionResponse>> listFreeSessions(
+            @AuthenticationPrincipal JwtPrincipal principal
+    ) {
+        return ApiResponse.success(chatService.listSessions(principal.userId(), null));
+    }
+
     @PostMapping("/kbs/{knowledgeBaseId}/sessions")
     public ApiResponse<ChatSessionResponse> createSession(
             @AuthenticationPrincipal JwtPrincipal principal,
@@ -48,6 +55,14 @@ public class ChatController {
             @Valid @RequestBody(required = false) CreateSessionRequest request
     ) {
         return ApiResponse.success(chatService.createSession(principal.userId(), knowledgeBaseId, request));
+    }
+
+    @PostMapping("/sessions")
+    public ApiResponse<ChatSessionResponse> createFreeSession(
+            @AuthenticationPrincipal JwtPrincipal principal,
+            @Valid @RequestBody(required = false) CreateSessionRequest request
+    ) {
+        return ApiResponse.success(chatService.createSession(principal.userId(), null, request));
     }
 
     @GetMapping("/sessions/{sessionId}/messages")

@@ -7,6 +7,7 @@ import com.evirag.common.security.JsonAccessDeniedHandler;
 import com.evirag.common.security.JsonAuthenticationEntryPoint;
 import com.evirag.user.User;
 import com.evirag.user.UserRepository;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -55,12 +56,14 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
                         .requestMatchers(
                                 "/api/auth/register/send-code",
                                 "/api/auth/register",
                                 "/api/auth/login",
                                 "/api/auth/password/send-code",
                                 "/api/auth/password/reset",
+                                "/error",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"

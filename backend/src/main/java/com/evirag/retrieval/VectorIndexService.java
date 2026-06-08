@@ -97,7 +97,8 @@ public class VectorIndexService {
 
             List<TextChunk> textChunks = chunkService.split(parsedDocument);
             if (textChunks.isEmpty()) {
-                fail(document, "CHUNK", "文档解析后没有可索引文本", "Parsed text is blank");
+                fail(document, "CHUNK", "文档解析后没有可索引文本",
+                        "Parsed text is blank. 如果这是扫描版 PDF，需要先 OCR；如果是 DOCX，请确认正文或表格中存在可复制文本。");
                 return;
             }
 

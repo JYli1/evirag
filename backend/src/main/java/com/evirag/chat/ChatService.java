@@ -5,10 +5,13 @@ import com.evirag.chat.dto.ChatSessionResponse;
 import com.evirag.chat.dto.CreateSessionRequest;
 import com.evirag.chat.dto.SendMessageRequest;
 import com.evirag.config.AppProperties;
+import com.evirag.document.DocumentChunkRepository;
 import com.evirag.knowledge.KnowledgeBase;
 import com.evirag.knowledge.KnowledgeBaseNotFoundException;
 import com.evirag.knowledge.KnowledgeBaseRepository;
 import com.evirag.llm.LlmException;
+import com.evirag.llm.LlmClient;
+import com.evirag.llm.LlmMessage;
 import com.evirag.rag.RagCitation;
 import com.evirag.rag.RagHistoryMessage;
 import com.evirag.rag.RagRequest;
@@ -43,7 +46,9 @@ public class ChatService {
     private final ChatSessionRepository chatSessionRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final KnowledgeBaseRepository knowledgeBaseRepository;
+    private final DocumentChunkRepository documentChunkRepository;
     private final RagService ragService;
+    private final LlmClient llmClient;
     private final AppProperties appProperties;
     private final ObjectMapper objectMapper;
     private final Executor chatStreamTaskExecutor;
@@ -52,7 +57,9 @@ public class ChatService {
             ChatSessionRepository chatSessionRepository,
             ChatMessageRepository chatMessageRepository,
             KnowledgeBaseRepository knowledgeBaseRepository,
+            DocumentChunkRepository documentChunkRepository,
             RagService ragService,
+            LlmClient llmClient,
             AppProperties appProperties,
             ObjectMapper objectMapper,
             @Qualifier("chatStreamTaskExecutor") Executor chatStreamTaskExecutor
@@ -60,7 +67,9 @@ public class ChatService {
         this.chatSessionRepository = chatSessionRepository;
         this.chatMessageRepository = chatMessageRepository;
         this.knowledgeBaseRepository = knowledgeBaseRepository;
+        this.documentChunkRepository = documentChunkRepository;
         this.ragService = ragService;
+        this.llmClient = llmClient;
         this.appProperties = appProperties;
         this.objectMapper = objectMapper;
         this.chatStreamTaskExecutor = chatStreamTaskExecutor;
@@ -68,14 +77,22 @@ public class ChatService {
 
     @Transactional
     public ChatSessionResponse createSession(Long userId, Long knowledgeBaseId, CreateSessionRequest request) {
-        knowledgeBaseRepository.findByIdAndUserId(knowledgeBaseId, userId)
-                .orElseThrow(KnowledgeBaseNotFoundException::new);
+        if (knowledgeBaseId != null) {
+            knowledgeBaseRepository.findByIdAndUserId(knowledgeBaseId, userId)
+                    .orElseThrow(KnowledgeBaseNotFoundException::new);
+        }
         ChatSession session = ChatSession.create(userId, knowledgeBaseId, request == null ? null : request.title());
         return ChatSessionResponse.from(chatSessionRepository.save(session));
     }
 
     @Transactional(readOnly = true)
     public List<ChatSessionResponse> listSessions(Long userId, Long knowledgeBaseId) {
+        if (knowledgeBaseId == null) {
+            return chatSessionRepository.findByKnowledgeBaseIdIsNullAndUserIdOrderByUpdatedAtDesc(userId)
+                    .stream()
+                    .map(ChatSessionResponse::from)
+                    .toList();
+        }
         knowledgeBaseRepository.findByIdAndUserId(knowledgeBaseId, userId)
                 .orElseThrow(KnowledgeBaseNotFoundException::new);
         return chatSessionRepository.findByKnowledgeBaseIdAndUserIdOrderByUpdatedAtDesc(knowledgeBaseId, userId)
@@ -107,14 +124,24 @@ public class ChatService {
         try {
             ChatSession session = chatSessionRepository.findByIdAndUserId(sessionId, userId)
                     .orElseThrow(ChatNotFoundException::new);
-            KnowledgeBase knowledgeBase = knowledgeBaseRepository
-                    .findByIdAndUserId(session.getKnowledgeBaseId(), userId)
-                    .orElseThrow(KnowledgeBaseNotFoundException::new);
-
             List<RagHistoryMessage> historyMessages = historyMessages(userId, sessionId);
             chatMessageRepository.save(ChatMessage.user(sessionId, userId, request.content()));
             session.touch();
             chatSessionRepository.save(session);
+
+            if (session.getKnowledgeBaseId() == null) {
+                streamDirectLlmAnswer(emitter, sessionId, userId, request.content(), historyMessages);
+                return;
+            }
+
+            KnowledgeBase knowledgeBase = knowledgeBaseRepository
+                    .findByIdAndUserId(session.getKnowledgeBaseId(), userId)
+                    .orElseThrow(KnowledgeBaseNotFoundException::new);
+
+            if (documentChunkRepository.countByKnowledgeBaseId(knowledgeBase.getId()) == 0) {
+                streamNoIndexedDocumentAnswer(emitter, sessionId, userId, request.content(), historyMessages);
+                return;
+            }
 
             RagRequest ragRequest = new RagRequest(
                     userId,
@@ -130,6 +157,85 @@ public class ChatService {
             sendEvent(emitter, "error", errorPayload(stageOf(ex), "问答生成失败", rawSummary(ex)));
             emitter.complete();
         }
+    }
+
+    /**
+     * 知识库还没有成功索引的切片时直接返回业务提示。
+     *
+     * <p>这样可以避免空知识库仍然调用 embedding 和 Chroma，最终把 Chroma 404 暴露给前端。</p>
+     */
+    private void streamNoIndexedDocumentAnswer(
+            SseEmitter emitter,
+            Long sessionId,
+            Long userId,
+            String query,
+            List<RagHistoryMessage> historyMessages
+    ) throws Exception {
+        String prefix = "当前知识库中还没有可检索内容，下面是不基于知识库的通用回答：";
+        StringBuilder answer = new StringBuilder(prefix);
+        List<RagCitation> emptyCitations = List.of();
+        sendEvent(emitter, "retrieval_start", Map.of("query", query));
+        sendEvent(emitter, "retrieval_done", Map.of("citations", emptyCitations));
+        sendEvent(emitter, "answer_delta", Map.of("delta", prefix));
+        llmClient.stream(directPromptMessages(query, historyMessages), delta -> {
+            answer.append(delta);
+            sendEvent(emitter, "answer_delta", Map.of("delta", delta));
+        });
+        chatMessageRepository.save(ChatMessage.assistant(
+                sessionId,
+                userId,
+                answer.toString(),
+                objectMapper.writeValueAsString(emptyCitations),
+                true
+        ));
+        sendEvent(emitter, "answer_done", Map.of(
+                "answer", answer.toString(),
+                "rewrittenQuery", query,
+                "citations", emptyCitations,
+                "lowConfidence", true
+        ));
+        emitter.complete();
+    }
+
+    private void streamDirectLlmAnswer(
+            SseEmitter emitter,
+            Long sessionId,
+            Long userId,
+            String query,
+            List<RagHistoryMessage> historyMessages
+    ) throws Exception {
+        StringBuilder answer = new StringBuilder();
+        List<RagCitation> emptyCitations = List.of();
+        sendEvent(emitter, "retrieval_start", Map.of("query", query));
+        sendEvent(emitter, "retrieval_done", Map.of("citations", emptyCitations));
+        llmClient.stream(directPromptMessages(query, historyMessages), delta -> {
+            answer.append(delta);
+            sendEvent(emitter, "answer_delta", Map.of("delta", delta));
+        });
+        chatMessageRepository.save(ChatMessage.assistant(
+                sessionId,
+                userId,
+                answer.toString(),
+                objectMapper.writeValueAsString(emptyCitations),
+                false
+        ));
+        sendEvent(emitter, "answer_done", Map.of(
+                "answer", answer.toString(),
+                "rewrittenQuery", query,
+                "citations", emptyCitations,
+                "lowConfidence", false
+        ));
+        emitter.complete();
+    }
+
+    private List<LlmMessage> directPromptMessages(String query, List<RagHistoryMessage> historyMessages) {
+        List<LlmMessage> messages = new ArrayList<>();
+        messages.add(LlmMessage.system("你是 EviRAG 的通用中文助手。当前回答不使用知识库引用，请直接、准确、简洁地回答用户问题。"));
+        for (RagHistoryMessage history : historyMessages) {
+            messages.add(new LlmMessage(history.role(), history.content()));
+        }
+        messages.add(LlmMessage.user(query));
+        return messages;
     }
 
     /**

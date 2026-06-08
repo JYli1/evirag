@@ -21,8 +21,8 @@
       :session-title="activeSession?.title || ''"
       :messages="messages"
       :retrieval-text="retrievalText"
-      :can-send="Boolean(activeKnowledgeBaseId) && !sending"
-      :can-create-session="Boolean(activeKnowledgeBaseId) && !sending"
+      :can-send="!sending"
+      :can-create-session="!sending"
       :sending="sending"
       @send="sendQuestion"
       @create-session="handleCreateSession"
@@ -70,6 +70,7 @@ const retrievalText = ref('');
 const error = ref('');
 const uploading = ref(false);
 const sending = ref(false);
+let documentPollingTimer: number | undefined;
 
 const activeKnowledgeBase = computed(() =>
   knowledgeBases.value.find((item) => item.id === activeKnowledgeBaseId.value),
@@ -89,6 +90,8 @@ async function loadKnowledgeBases() {
     knowledgeBases.value = await listKnowledgeBases();
     if (knowledgeBases.value.length > 0) {
       await selectKnowledgeBase(knowledgeBases.value[0].id);
+    } else {
+      await loadSessions(null);
     }
   } catch (err) {
     error.value = apiErrorMessage(err);
@@ -113,7 +116,7 @@ async function loadDocuments(knowledgeBaseId: number) {
   }
 }
 
-async function loadSessions(knowledgeBaseId: number) {
+async function loadSessions(knowledgeBaseId: number | null) {
   try {
     sessions.value = await listSessions(knowledgeBaseId);
     if (sessions.value.length > 0) {
@@ -156,6 +159,7 @@ async function handleUploadDocument(file: File) {
   try {
     const document = await uploadDocument(activeKnowledgeBaseId.value, file);
     documents.value = [document, ...documents.value.filter((item) => item.id !== document.id)];
+    scheduleDocumentPolling(activeKnowledgeBaseId.value);
   } catch (err) {
     error.value = apiErrorMessage(err);
   } finally {
@@ -164,10 +168,10 @@ async function handleUploadDocument(file: File) {
 }
 
 async function handleCreateSession() {
-  if (!activeKnowledgeBaseId.value) return;
   error.value = '';
   try {
-    const session = await createSession(activeKnowledgeBaseId.value, `知识库对话 ${sessions.value.length + 1}`);
+    const titlePrefix = activeKnowledgeBaseId.value ? '知识库对话' : '自由对话';
+    const session = await createSession(activeKnowledgeBaseId.value, `${titlePrefix} ${sessions.value.length + 1}`);
     sessions.value = [session, ...sessions.value];
     activeSessionId.value = session.id;
     messages.value = [];
@@ -183,12 +187,31 @@ async function ensureSession(content: string) {
     return activeSessionId.value;
   }
   if (!activeKnowledgeBaseId.value) {
-    throw new Error('请先选择知识库');
+    const session = await createSession(null, content.slice(0, 28) || '新的自由对话');
+    sessions.value = [session, ...sessions.value];
+    activeSessionId.value = session.id;
+    return session.id;
   }
   const session = await createSession(activeKnowledgeBaseId.value, content.slice(0, 28) || '新的知识库对话');
   sessions.value = [session, ...sessions.value];
   activeSessionId.value = session.id;
   return session.id;
+}
+
+function scheduleDocumentPolling(knowledgeBaseId: number) {
+  if (documentPollingTimer) {
+    window.clearInterval(documentPollingTimer);
+  }
+  let remainingTicks = 30;
+  documentPollingTimer = window.setInterval(async () => {
+    remainingTicks -= 1;
+    await loadDocuments(knowledgeBaseId);
+    const hasProcessing = documents.value.some((item) => item.parseStatus === 'PROCESSING');
+    if (!hasProcessing || remainingTicks <= 0) {
+      window.clearInterval(documentPollingTimer);
+      documentPollingTimer = undefined;
+    }
+  }, 2000);
 }
 
 async function sendQuestion(content: string) {
