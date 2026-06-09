@@ -122,6 +122,8 @@ public class ChatService {
 
     private void runStream(Long userId, Long sessionId, SendMessageRequest request, SseEmitter emitter) {
         try {
+            // 这里是一次聊天请求的主流程。先确认会话确实属于当前用户，再保存用户问题，
+            // 然后根据会话是否绑定知识库，决定走“自由 LLM 问答”还是“RAG 知识库问答”。
             ChatSession session = chatSessionRepository.findByIdAndUserId(sessionId, userId)
                     .orElseThrow(ChatNotFoundException::new);
             List<RagHistoryMessage> historyMessages = historyMessages(userId, sessionId);
@@ -130,6 +132,7 @@ public class ChatService {
             chatSessionRepository.save(session);
 
             if (session.getKnowledgeBaseId() == null) {
+                // 没有知识库的会话不做 embedding 和 Chroma 检索，直接把历史消息和当前问题发给 LLM。
                 streamDirectLlmAnswer(emitter, sessionId, userId, request.content(), historyMessages);
                 return;
             }
@@ -139,6 +142,8 @@ public class ChatService {
                     .orElseThrow(KnowledgeBaseNotFoundException::new);
 
             if (documentChunkRepository.countByKnowledgeBaseId(knowledgeBase.getId()) == 0) {
+                // 选了知识库但还没有成功索引的切片时，也不要强行查 Chroma。
+                // 这样用户能得到一个清楚的业务提示，而不是看到 collection 不存在之类的底层错误。
                 streamNoIndexedDocumentAnswer(emitter, sessionId, userId, request.content(), historyMessages);
                 return;
             }
@@ -152,6 +157,7 @@ public class ChatService {
                     appProperties.getRag().getTopK(),
                     appProperties.getRag().getLowScoreThreshold()
             );
+            // 从这里开始交给 rag 模块：改写问题、做 embedding、查 Chroma、组 prompt、流式调用 LLM。
             ragService.streamAnswer(ragRequest, new SseRagStreamListener(emitter, sessionId, userId));
         } catch (Exception ex) {
             sendEvent(emitter, "error", errorPayload(stageOf(ex), "问答生成失败", rawSummary(ex)));
@@ -175,6 +181,7 @@ public class ChatService {
         StringBuilder answer = new StringBuilder(prefix);
         List<RagCitation> emptyCitations = List.of();
         List<LlmMessage> messages = directPromptMessages(query, historyMessages);
+        // 前端过程日志依赖这些 SSE 事件。事件名不要随意改，否则前端解析不到对应阶段。
         sendEvent(emitter, "retrieval_start", Map.of("query", query));
         sendEvent(emitter, "retrieval_done", Map.of("citations", emptyCitations));
         sendDebugLog(emitter, "BACKEND->LLM", "POST /chat/completions", llmRequestSummary(messages));
@@ -312,6 +319,8 @@ public class ChatService {
         @Override
         public void onAnswerDone(RagResponse response) {
             try {
+                // LLM 流式返回时，answer_delta 会一段段追加到 answer。
+                // 某些实现会在 answer_done 里再次给出完整答案，所以这里优先用 response.answer()。
                 String finalAnswer = response.answer() == null || response.answer().isBlank()
                         ? answer.toString()
                         : response.answer();

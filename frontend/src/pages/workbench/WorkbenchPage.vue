@@ -179,6 +179,8 @@ async function loadKnowledgeBases() {
 }
 
 async function selectKnowledgeBase(id: number) {
+  // 切换知识库时，要清空当前会话、引用证据和检索状态。
+  // 否则用户会看到上一个知识库留下来的消息或证据。
   activeKnowledgeBaseId.value = id;
   activeSessionId.value = null;
   messages.value = [];
@@ -302,6 +304,8 @@ async function ensureSession(content: string) {
 }
 
 function scheduleDocumentPolling(knowledgeBaseId: number) {
+  // 上传后文档会异步索引，前端不知道后端何时完成。
+  // 这里每 2 秒查一次文档列表，用来把 PROCESSING 更新成 READY 或 FAILED。
   if (documentPollingTimer) {
     window.clearInterval(documentPollingTimer);
   }
@@ -353,6 +357,8 @@ function notifyNewFailedDocuments(previousDocuments: KnowledgeDocument[], nextDo
 }
 
 async function sendQuestion(content: string) {
+  // 一次发送会先在前端插入用户消息和一个 pending 的助手消息。
+  // 后端通过 SSE 一段段返回答案，前端再按 id 更新这条助手消息。
   sending.value = true;
   error.value = '';
   retrievalText.value = '正在准备检索知识库';
@@ -401,6 +407,8 @@ async function sendQuestion(content: string) {
         addProcessLog(stage, `${payload.direction} ${payload.title}`, prettyDetail(payload.detail));
       },
       onAnswerDelta(payload) {
+        // 不能直接修改最开始创建的 assistantMessage 普通对象。
+        // 必须替换 messages.value 数组里的对应项，Vue 才能稳定触发子组件重新渲染。
         updateAssistantMessage(assistantMessageId, (message) => ({
           ...message,
           pending: true,
@@ -454,6 +462,8 @@ function normalizeMessage(message: ChatMessage) {
 }
 
 function updateAssistantMessage(id: string, updater: (message: ChatMessage) => ChatMessage) {
+  // Vue 更容易追踪“数组被替换”的变化，所以这里使用 map 生成新数组。
+  // 这比直接 message.content += delta 更稳定，尤其是流式输出时。
   messages.value = messages.value.map((message) => {
     if (String(message.id) !== id) {
       return message;
@@ -476,6 +486,7 @@ function parseCitations(raw: string | null | undefined) {
 }
 
 function addProcessLog(stage: ProcessLogItem['stage'], title: string, detail: string) {
+  // 过程日志只保留最近 80 条，避免长时间使用后页面越来越卡。
   processLogs.value = [
     {
       id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,

@@ -11,6 +11,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class EviRagApplication {
     public static void main(String[] args) {
+        // Spring Boot 默认不会主动读取 backend/.env，所以这里必须先把本地配置加载进来。
+        // 否则数据库密码、JWT 密钥、模型 Key 等占位符在启动时会读不到真实值。
         DotenvBootstrap.load();
         SpringApplication.run(EviRagApplication.class, args);
     }

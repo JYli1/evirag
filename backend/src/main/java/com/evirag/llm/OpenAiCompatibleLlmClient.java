@@ -81,6 +81,8 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
         body.put("model", appProperties.getLlm().getModel());
         body.put("messages", messages);
         body.put("stream", stream);
+        // OpenAI-compatible 的聊天接口一般都是 POST /chat/completions。
+        // 不同服务商只需要改 baseUrl、apiKey、model，代码层面的请求结构基本相同。
         return HttpRequest.newBuilder()
                 .uri(chatCompletionsUri())
                 .timeout(Duration.ofSeconds(appProperties.getLlm().getTimeoutSeconds()))
@@ -134,6 +136,8 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
             return;
         }
         try {
+            // 流式响应不是一次返回完整答案，而是一行一行返回 JSON。
+            // 只有 delta.content 是真正文本时才追加；有些服务商会发 content:null 的控制片段，要忽略。
             JsonNode delta = objectMapper.readTree(payload)
                     .path("choices")
                     .path(0)
@@ -169,6 +173,7 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
     private String connectionErrorSummary(Exception exception, boolean stream, List<LlmMessage> messages) {
         Map<String, Object> summary = baseDebugSummary(stream, messages);
         summary.put("errorType", "CLIENT_EXCEPTION");
+        // 这里的错误不是“模型回答错了”，而是 HTTP 请求阶段就失败了，例如 baseUrl 不通或代理问题。
         summary.put("exception", exceptionSummary(exception));
         summary.put("hint", "请求没有拿到 LLM 的 HTTP 响应，通常是 baseUrl 不可达、网络/代理/DNS/防火墙问题，或服务地址与模型供应商不匹配。");
         return toJson(summary);

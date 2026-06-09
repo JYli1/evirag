@@ -51,6 +51,8 @@ marked.setOptions({
 });
 
 const latestTypingKey = computed(() => {
+  // 只让最新一条正在生成的助手消息使用打字机效果。
+  // 历史消息直接渲染，避免刷新长对话时从头逐字播放。
   const latest = [...props.messages].reverse().find((message) => message.role === 'ASSISTANT' && message.pending);
   return latest ? messageKey(latest) : '';
 });
@@ -130,6 +132,8 @@ function startTyping() {
 function renderMessage(message: ChatMessage) {
   const key = messageKey(message);
   const content = isTypingMessage(message) ? typedContent.value[key] || '' : message.content || '';
+  // marked 负责把 Markdown 转成 HTML，DOMPurify 负责清洗危险标签。
+  // 因为模板里用了 v-html，这一步清洗不能省。
   const rawHtml = marked.parse(content, { async: false }) as string;
   return DOMPurify.sanitize(rawHtml);
 }
