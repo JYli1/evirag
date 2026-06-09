@@ -100,8 +100,9 @@ header h2 {
 .table {
   overflow: auto;
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  background: #ffffff;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--shadow-card);
 }
 
 .row {
@@ -124,15 +125,15 @@ header h2 {
 
 .row:not(.head):hover,
 .row.selected {
-  background: rgba(31, 122, 87, 0.06);
+  background: #eef5fb;
 }
 
 .row.selected {
-  box-shadow: inset 3px 0 0 rgba(31, 122, 87, 0.46);
+  box-shadow: inset 3px 0 0 rgba(37, 99, 235, 0.64);
 }
 
 .row.head {
-  background: #f4f8f5;
+  background: var(--color-panel-muted);
   color: var(--color-muted);
   font-size: 12px;
   font-weight: 900;
@@ -152,25 +153,25 @@ header h2 {
 .status {
   justify-self: start;
   padding: 4px 7px;
-  border-radius: var(--radius-sm);
+  border-radius: 999px;
   font-weight: 900;
 }
 
 .status.active {
-  background: rgba(31, 122, 87, 0.1);
-  color: var(--color-brand-dark);
+  background: rgba(15, 118, 110, 0.1);
+  color: #0f766e;
 }
 
 .status.disabled {
-  background: rgba(178, 74, 63, 0.1);
+  background: rgba(190, 18, 60, 0.1);
   color: var(--color-danger);
 }
 
 button {
   height: 32px;
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-sm);
-  background: #ffffff;
+  border-radius: 12px;
+  background: var(--color-panel);
   color: var(--color-brand-dark);
   font-weight: 900;
 }

@@ -59,10 +59,13 @@ public class RagService {
         }
 
         StringBuilder answer = new StringBuilder();
-        llmClient.stream(promptMessages(request, citations), delta -> {
+        List<LlmMessage> messages = promptMessages(request, citations);
+        listener.onLlmRequest(messages);
+        llmClient.stream(messages, delta -> {
             answer.append(delta);
             listener.onAnswerDelta(delta);
         });
+        listener.onLlmResponse(answer.toString());
         listener.onAnswerDone(new RagResponse(answer.toString(), rewrite.rewrittenQuery(), citations, lowConfidence(citations)));
     }
 

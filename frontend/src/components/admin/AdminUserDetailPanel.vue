@@ -156,8 +156,9 @@ function formatDate(value: string) {
   gap: 14px;
   padding: 16px;
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  background: #ffffff;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--shadow-card);
 }
 
 header {
@@ -199,8 +200,8 @@ header h2 {
   gap: 12px;
   padding: 12px;
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-sm);
-  background: #f8fbf8;
+  border-radius: 14px;
+  background: var(--color-panel-muted);
 }
 
 .identity-strip div {
@@ -227,8 +228,8 @@ header h2 {
   min-height: 74px;
   padding: 10px;
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-sm);
-  background: #fbfcfa;
+  border-radius: 14px;
+  background: var(--color-panel-muted);
 }
 
 .detail-metrics strong {
@@ -242,9 +243,9 @@ header h2 {
   display: grid;
   gap: 14px;
   padding: 13px;
-  border: 1px solid rgba(31, 122, 87, 0.14);
-  border-radius: var(--radius-sm);
-  background: linear-gradient(180deg, #fbfdf9 0%, #ffffff 100%);
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--color-panel-muted) 0%, #ffffff 100%);
 }
 
 .visual-block {
@@ -268,8 +269,8 @@ header h2 {
   height: 14px;
   display: flex;
   overflow: hidden;
-  border-radius: var(--radius-sm);
-  background: #eef2ee;
+  border-radius: 999px;
+  background: #edf2f7;
 }
 
 .stack-bar i {
@@ -278,11 +279,11 @@ header h2 {
 }
 
 .stack-bar .ready {
-  background: #1f7a57;
+  background: #0f766e;
 }
 
 .stack-bar .failed {
-  background: #b24a3f;
+  background: #be123c;
 }
 
 .bar-row {
@@ -307,19 +308,19 @@ header h2 {
 .bar-row div {
   height: 10px;
   overflow: hidden;
-  border-radius: var(--radius-sm);
-  background: #eef2ee;
+  border-radius: 999px;
+  background: #edf2f7;
 }
 
 .bar-row i {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #486f8d;
+  background: #2563eb;
 }
 
 .bar-row i.chat {
-  background: #a47026;
+  background: #d97706;
 }
 
 .recent-grid {

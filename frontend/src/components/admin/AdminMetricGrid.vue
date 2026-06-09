@@ -31,19 +31,29 @@ const metrics = computed(() => [
 <style scoped>
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(120px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(156px, 1fr));
+  gap: 14px;
 }
 
 .metric-card {
   display: grid;
-  gap: 7px;
-  min-height: 118px;
-  padding: 15px;
+  gap: 8px;
+  min-height: 126px;
+  padding: 16px;
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  background: #ffffff;
-  box-shadow: 0 14px 38px rgba(25, 49, 38, 0.06);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--shadow-card);
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(37, 90, 143, 0.22);
+  box-shadow: 0 18px 46px rgba(33, 53, 83, 0.12);
 }
 
 .metric-card span {
@@ -54,7 +64,7 @@ const metrics = computed(() => [
 
 .metric-card strong {
   color: var(--color-ink);
-  font-size: 30px;
+  font-size: 32px;
   line-height: 1;
 }
 
@@ -62,12 +72,6 @@ const metrics = computed(() => [
   color: var(--color-muted);
   font-size: 12px;
   line-height: 1.45;
-}
-
-@media (max-width: 1160px) {
-  .metric-grid {
-    grid-template-columns: repeat(4, minmax(140px, 1fr));
-  }
 }
 
 @media (max-width: 680px) {

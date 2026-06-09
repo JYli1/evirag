@@ -39,8 +39,11 @@ export interface RagAnswerDone {
 }
 
 export interface RagStreamHandlers {
+  onClientRequest?: (payload: { method: string; url: string; body: Record<string, unknown> }) => void;
+  onClientResponse?: (payload: { status: number; ok: boolean }) => void;
   onRetrievalStart?: (payload: { query: string }) => void;
   onRetrievalDone?: (payload: { citations: RagCitation[] }) => void;
+  onDebugLog?: (payload: { direction: string; title: string; detail: string }) => void;
   onAnswerDelta?: (payload: { delta: string }) => void;
   onAnswerDone?: (payload: RagAnswerDone) => void;
   onError?: (payload: { stage?: string; message?: string; rawSummary?: string }) => void;
@@ -65,14 +68,18 @@ export async function listMessages(sessionId: number) {
 
 export async function streamChatMessage(sessionId: number, content: string, handlers: RagStreamHandlers) {
   const token = tokenStorage().get();
-  const response = await fetch(`/api/sessions/${sessionId}/messages/stream`, {
+  const url = `/api/sessions/${sessionId}/messages/stream`;
+  const body = { content };
+  handlers.onClientRequest?.({ method: 'POST', url, body });
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify(body),
   });
+  handlers.onClientResponse?.({ status: response.status, ok: response.ok });
 
   if (!response.ok || !response.body) {
     throw new Error(`SSE 请求失败：HTTP ${response.status}`);
@@ -122,6 +129,7 @@ function dispatchEventBlock(block: string, handlers: RagStreamHandlers) {
   const payload = parsePayload(dataLines.join('\n'));
   if (eventName === 'retrieval_start') handlers.onRetrievalStart?.(payload as { query: string });
   if (eventName === 'retrieval_done') handlers.onRetrievalDone?.(payload as { citations: RagCitation[] });
+  if (eventName === 'debug_log') handlers.onDebugLog?.(payload as { direction: string; title: string; detail: string });
   if (eventName === 'answer_delta') handlers.onAnswerDelta?.(payload as { delta: string });
   if (eventName === 'answer_done') handlers.onAnswerDone?.(payload as RagAnswerDone);
   if (eventName === 'error') handlers.onError?.(payload as { stage?: string; message?: string; rawSummary?: string });

@@ -120,8 +120,8 @@ onBeforeUnmount(() => window.clearInterval(timer));
 .secondary-action {
   min-height: 46px;
   border: 1px solid var(--color-strong-line);
-  border-radius: var(--radius-sm);
-  background: #f7faf7;
+  border-radius: 12px;
+  background: var(--color-panel-muted);
   color: var(--color-brand-dark);
   font-weight: 900;
 }
@@ -130,8 +130,9 @@ onBeforeUnmount(() => window.clearInterval(timer));
   margin: 0;
   padding: 10px 12px;
   border-left: 3px solid var(--color-info);
-  background: rgba(72, 111, 141, 0.08);
-  color: #2f536e;
+  border-radius: 10px;
+  background: rgba(15, 118, 110, 0.08);
+  color: #115e59;
   font-size: 13px;
   line-height: 1.6;
 }

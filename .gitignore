@@ -10,6 +10,7 @@ frontend/dist/
 # 后端真实运行配置，禁止提交密钥和数据库密码
 backend/.env
 uploads/
+chroma-data/
 
 # 常见本地编辑器和系统文件
 .idea/

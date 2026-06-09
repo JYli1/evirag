@@ -64,85 +64,7 @@ async function submit() {
 </script>
 
 <style scoped>
-.auth-card {
-  width: min(100%, 430px);
-  display: grid;
-  gap: 18px;
-  padding: 30px;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: var(--shadow-soft);
-}
-
-.form-head {
-  display: grid;
-  gap: 6px;
-  margin-bottom: 6px;
-}
-
-.form-head p {
-  margin: 0;
-  color: var(--color-brand);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.form-head h2 {
-  margin: 0;
-  color: var(--color-ink);
-  font-size: 28px;
-  line-height: 1.25;
-  letter-spacing: 0;
-}
-
-label {
-  display: grid;
-  gap: 8px;
-  color: var(--color-ink);
-  font-size: 14px;
-  font-weight: 800;
-}
-
-input {
-  width: 100%;
-  min-height: 46px;
-  padding: 0 13px;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-sm);
-  background: #fbfdf9;
-  color: var(--color-ink);
-  box-shadow: var(--shadow-field);
-  outline: none;
-}
-
-input:focus {
-  border-color: var(--color-brand);
-  box-shadow: 0 0 0 3px rgba(31, 122, 87, 0.14);
-}
-
-.primary-action {
-  min-height: 48px;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: var(--color-brand-dark);
-  color: #ffffff;
-  font-weight: 900;
-}
-
-.primary-action:disabled {
-  opacity: 0.68;
-}
-
-.error-detail {
-  margin: 0;
-  padding: 10px 12px;
-  border-left: 3px solid var(--color-danger);
-  background: rgba(178, 74, 63, 0.08);
-  color: #7b342d;
-  font-size: 13px;
-  line-height: 1.6;
-}
+@import './auth-form.css';
 
 .form-links {
   display: flex;
@@ -150,6 +72,6 @@ input:focus {
   gap: 12px;
   color: var(--color-brand-dark);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 900;
 }
 </style>

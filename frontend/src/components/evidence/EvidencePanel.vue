@@ -1,8 +1,11 @@
 <template>
   <aside class="evidence-panel">
-    <header>
-      <p>引用证据</p>
-      <strong>{{ citations.length }} 条</strong>
+    <header class="evidence-head">
+      <div>
+        <p>引用证据</p>
+        <strong>{{ citations.length }} 条</strong>
+      </div>
+      <span>Cosine</span>
     </header>
 
     <section v-if="query" class="query-box">
@@ -37,17 +40,20 @@ defineProps<{
 
 <style scoped>
 .evidence-panel {
-  min-height: 100vh;
+  height: calc(100vh - 28px);
   display: grid;
   grid-auto-rows: max-content;
-  gap: 13px;
-  padding: 18px;
-  border-left: 1px solid var(--color-line);
-  background: rgba(251, 253, 249, 0.92);
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid rgba(216, 224, 235, 0.82);
+  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.88);
   overflow-y: auto;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(18px);
 }
 
-header,
+.evidence-head,
 .citation-head {
   display: flex;
   align-items: center;
@@ -55,82 +61,126 @@ header,
   gap: 12px;
 }
 
-header p {
+.evidence-head p {
   margin: 0;
-  color: var(--color-muted);
+  color: var(--color-brand);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
-header strong {
+.evidence-head strong {
+  display: block;
+  margin-top: 6px;
   color: var(--color-ink);
-  font-size: 18px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.evidence-head span {
+  padding: 6px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-panel-muted);
+  color: var(--color-brand-dark);
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .query-box,
 .citation {
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  background: #ffffff;
+  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: var(--shadow-sm);
 }
 
 .query-box {
-  padding: 12px;
+  padding: 14px 16px;
+  border-left: 4px solid var(--color-brand);
+  background: #eef5fb;
 }
 
 .query-box span {
-  color: var(--color-muted);
+  color: var(--color-brand-dark);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .query-box p,
 .citation p {
-  margin: 7px 0 0;
+  margin: 8px 0 0;
   color: var(--color-ink);
-  line-height: 1.65;
+  line-height: 1.7;
+  font-size: 14px;
 }
 
 .citation {
-  padding: 12px;
+  padding: 14px 16px;
+}
+
+.citation:hover {
+  transform: translateY(-2px);
+  border-color: rgba(37, 90, 143, 0.24);
+  box-shadow: var(--shadow-card);
 }
 
 .citation-head strong {
   overflow-wrap: anywhere;
   font-size: 13px;
+  font-weight: 700;
+  color: var(--color-ink);
 }
 
 .citation-head span {
-  color: var(--color-brand-dark);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(22, 116, 91, 0.1);
+  color: var(--color-success);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .citation-head span.low {
+  background: rgba(163, 106, 31, 0.12);
   color: var(--color-accent);
 }
 
 .citation small {
   display: block;
-  margin-top: 6px;
+  margin-top: 8px;
   color: var(--color-muted);
+  font-size: 12px;
 }
 
 .citation b {
-  margin-left: 6px;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(163, 106, 31, 0.12);
   color: var(--color-accent);
+  font-weight: 700;
+  font-size: 11px;
 }
 
 .citation p {
-  max-height: 178px;
+  max-height: 200px;
   overflow: auto;
   font-size: 13px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-panel-muted);
+  border: 1px solid var(--color-line);
 }
 
 .empty {
   margin: 0;
+  padding: 20px;
   color: var(--color-muted);
   font-size: 13px;
   line-height: 1.6;
+  text-align: center;
+  background: var(--color-panel-muted);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--color-line);
 }
 </style>
