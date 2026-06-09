@@ -1,5 +1,6 @@
 package com.evirag.rag;
 
+import com.evirag.llm.LlmMessage;
 import java.util.List;
 
 /**
@@ -13,7 +14,13 @@ public interface RagStreamListener {
 
     void onRetrievalDone(List<RagCitation> citations);
 
+    default void onLlmRequest(List<LlmMessage> messages) {
+    }
+
     void onAnswerDelta(String delta);
 
     void onAnswerDone(RagResponse response);
+
+    default void onLlmResponse(String answer) {
+    }
 }

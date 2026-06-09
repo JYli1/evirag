@@ -21,11 +21,7 @@
         class="document-item"
         :class="{ failed: doc.parseStatus === 'FAILED' }"
       >
-        <div class="document-row">
-          <div class="document-copy">
-            <strong>{{ doc.originalFilename }}</strong>
-            <small>{{ formatSize(doc.fileSizeBytes) }} · {{ doc.chunkCount }} 个切片</small>
-          </div>
+        <div class="document-row document-actions-row">
           <div class="document-actions">
             <button
               v-if="doc.parseStatus === 'READY' && doc.chunkCount > 0"
@@ -47,6 +43,10 @@
               {{ deletingDocumentId === doc.id ? '删' : '×' }}
             </button>
           </div>
+        </div>
+        <div class="document-copy" :title="doc.originalFilename">
+          <strong>{{ displayFilename(doc.originalFilename) }}</strong>
+          <small>{{ formatSize(doc.fileSizeBytes) }} · {{ doc.chunkCount }} 个切片</small>
         </div>
 
         <p v-if="doc.parseStatus === 'FAILED'" class="raw-error">
@@ -180,6 +180,17 @@ function formatSize(bytes: number) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
+
+function displayFilename(filename: string) {
+  if (filename.length <= 18) {
+    return filename;
+  }
+  const dotIndex = filename.lastIndexOf('.');
+  const extension = dotIndex > 0 ? filename.slice(dotIndex) : '';
+  const base = dotIndex > 0 ? filename.slice(0, dotIndex) : filename;
+  const suffix = extension.length <= 8 ? extension : '';
+  return `${base.slice(0, 14)}...${suffix}`;
+}
 </script>
 
 <style scoped>
@@ -189,7 +200,7 @@ function formatSize(bytes: number) {
   padding: 14px;
   border: 1px solid var(--color-line);
   border-radius: var(--radius-xl);
-  background: linear-gradient(135deg, #f8fafc 0%, #f0f9ff 100%);
+  background: var(--color-panel-muted);
   box-shadow: var(--shadow-sm);
 }
 
@@ -212,7 +223,7 @@ header span {
   padding: 8px 14px;
   border: 1px solid var(--color-brand);
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-dark) 100%);
+  background: var(--color-brand-dark);
   color: #ffffff;
   cursor: pointer;
   font-size: 12px;
@@ -222,8 +233,8 @@ header span {
 }
 
 .upload-button:hover:not(.disabled) {
-  background: linear-gradient(135deg, var(--color-brand-dark) 0%, #1e40af 100%);
-  box-shadow: var(--shadow-md);
+  background: var(--color-brand);
+  box-shadow: var(--shadow-glow);
   transform: translateY(-1px);
 }
 
@@ -243,7 +254,7 @@ header span {
   padding: 12px;
   border: 1px solid var(--color-line);
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.9));
+  background: rgba(255, 255, 255, 0.82);
   box-shadow: var(--shadow-sm);
   transition: all var(--transition-base);
 }
@@ -255,46 +266,54 @@ header span {
 }
 
 .document-item.failed {
-  border-color: rgba(239, 68, 68, 0.3);
-  background: linear-gradient(135deg, rgba(254, 242, 242, 0.95), rgba(255, 255, 255, 0.9));
+  border-color: rgba(180, 35, 58, 0.22);
+  background: rgba(255, 248, 249, 0.86);
 }
 
 .document-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .document-copy {
   min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding-top: 2px;
 }
 
 .document-item strong {
   display: block;
-  overflow-wrap: anywhere;
+  max-width: 100%;
+  overflow: hidden;
   color: var(--color-ink);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .document-item small {
   display: block;
-  margin-top: 4px;
   color: var(--color-muted);
   font-size: 11px;
 }
 
 .document-actions {
-  display: inline-flex;
+  width: 100%;
+  display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
 .status {
   padding: 4px 10px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  background: rgba(52, 107, 132, 0.1);
   color: var(--color-info);
   font-size: 11px;
   font-weight: 700;
@@ -303,13 +322,13 @@ header span {
 }
 
 .status.ready {
-  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-  color: #065f46;
+  background: rgba(22, 116, 91, 0.1);
+  color: var(--color-success);
 }
 
 .status.processing {
-  background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
-  color: #92400e;
+  background: rgba(163, 106, 31, 0.12);
+  color: var(--color-accent);
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -323,15 +342,15 @@ header span {
 }
 
 .status.failed {
-  background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
-  color: #991b1b;
+  background: rgba(180, 35, 58, 0.1);
+  color: var(--color-danger);
 }
 
 .preview-button {
   padding: 4px 9px;
-  border: 1px solid rgba(59, 130, 246, 0.24);
+  border: 1px solid rgba(37, 90, 143, 0.2);
   border-radius: 8px;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  background: #eef5fb;
   color: var(--color-brand-dark);
   cursor: pointer;
   font-size: 11px;
@@ -342,7 +361,7 @@ header span {
 
 .preview-button:hover {
   border-color: var(--color-brand);
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  background: #e1edf6;
   box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
 }
@@ -352,9 +371,9 @@ header span {
   height: 28px;
   display: inline-grid;
   place-items: center;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  border: 1px solid rgba(180, 35, 58, 0.22);
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+  background: #ffffff;
   color: var(--color-danger);
   cursor: pointer;
   font-size: 18px;
@@ -366,7 +385,7 @@ header span {
 
 .delete-button:hover:not(:disabled) {
   border-color: var(--color-danger);
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  background: #fff1f3;
   box-shadow: var(--shadow-sm);
   transform: scale(1.05);
 }
@@ -390,8 +409,8 @@ header span {
   max-height: 60px;
   overflow: hidden;
   padding: 8px 10px;
-  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-  color: #991b1b;
+  background: #fff1f3;
+  color: #8f1f2f;
   border-radius: var(--radius-sm);
   font-size: 11px;
 }
@@ -425,9 +444,9 @@ header span {
   max-height: 85vh;
   display: grid;
   grid-template-rows: auto 1fr;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  background: #ffffff;
   border-radius: var(--radius-2xl);
-  box-shadow: var(--shadow-xl), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(23, 32, 51, 0.05);
   overflow: hidden;
   animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -455,7 +474,7 @@ header span {
   gap: 16px;
   padding: 20px 24px;
   border-bottom: 1px solid var(--color-line);
-  background: linear-gradient(135deg, #f8fafc 0%, #f0f9ff 100%);
+  background: var(--color-panel-muted);
 }
 
 .preview-head > div {
@@ -474,7 +493,7 @@ header span {
 
 .preview-head small {
   padding: 4px 10px;
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  background: #eef5fb;
   color: var(--color-brand-dark);
   font-size: 11px;
   font-weight: 700;
@@ -489,7 +508,7 @@ header span {
   place-items: center;
   border: 1px solid var(--color-line);
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  background: #ffffff;
   color: var(--color-muted);
   cursor: pointer;
   font-size: 22px;
@@ -501,7 +520,7 @@ header span {
 
 .close-button:hover {
   border-color: var(--color-danger);
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  background: #fff1f3;
   color: var(--color-danger);
   box-shadow: var(--shadow-sm);
   transform: rotate(90deg);
@@ -511,15 +530,15 @@ header span {
   padding: 16px;
   text-align: center;
   color: var(--color-muted);
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: var(--color-panel-muted);
   border-radius: var(--radius-md);
   border: 1px dashed var(--color-line);
 }
 
 .preview-note.error {
-  color: #991b1b;
-  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-  border-color: rgba(239, 68, 68, 0.3);
+  color: #8f1f2f;
+  background: #fff1f3;
+  border-color: rgba(180, 35, 58, 0.22);
 }
 
 .chunk-list {
@@ -533,7 +552,7 @@ header span {
   padding: 12px 14px;
   border: 1px solid var(--color-line);
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  background: #ffffff;
   box-shadow: var(--shadow-sm);
   transition: all var(--transition-fast);
 }
@@ -568,7 +587,7 @@ header span {
   padding: 12px;
   text-align: center;
   color: var(--color-muted);
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  background: #eef5fb;
   border-radius: var(--radius-md);
   font-weight: 600;
 }
@@ -590,7 +609,7 @@ header span {
   gap: 16px;
   padding: 16px 18px;
   border-bottom: 1px solid var(--color-line);
-  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+  background: var(--color-panel-muted);
 }
 
 .preview-head > div {
@@ -625,7 +644,7 @@ header span {
   padding: 8px;
   border: 1px solid var(--color-line);
   border-radius: 10px;
-  background: #f8fbff;
+  background: var(--color-panel-muted);
 }
 
 .chunk-card span {

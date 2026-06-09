@@ -174,13 +174,16 @@ public class ChatService {
         String prefix = "当前知识库中还没有可检索内容，下面是不基于知识库的通用回答：";
         StringBuilder answer = new StringBuilder(prefix);
         List<RagCitation> emptyCitations = List.of();
+        List<LlmMessage> messages = directPromptMessages(query, historyMessages);
         sendEvent(emitter, "retrieval_start", Map.of("query", query));
         sendEvent(emitter, "retrieval_done", Map.of("citations", emptyCitations));
+        sendDebugLog(emitter, "BACKEND->LLM", "POST /chat/completions", llmRequestSummary(messages));
         sendEvent(emitter, "answer_delta", Map.of("delta", prefix));
-        llmClient.stream(directPromptMessages(query, historyMessages), delta -> {
+        llmClient.stream(messages, delta -> {
             answer.append(delta);
             sendEvent(emitter, "answer_delta", Map.of("delta", delta));
         });
+        sendDebugLog(emitter, "LLM->BACKEND", "stream completed", answer.toString());
         chatMessageRepository.save(ChatMessage.assistant(
                 sessionId,
                 userId,
@@ -208,10 +211,13 @@ public class ChatService {
         List<RagCitation> emptyCitations = List.of();
         sendEvent(emitter, "retrieval_start", Map.of("query", query));
         sendEvent(emitter, "retrieval_done", Map.of("citations", emptyCitations));
-        llmClient.stream(directPromptMessages(query, historyMessages), delta -> {
+        List<LlmMessage> messages = directPromptMessages(query, historyMessages);
+        sendDebugLog(emitter, "BACKEND->LLM", "POST /chat/completions", llmRequestSummary(messages));
+        llmClient.stream(messages, delta -> {
             answer.append(delta);
             sendEvent(emitter, "answer_delta", Map.of("delta", delta));
         });
+        sendDebugLog(emitter, "LLM->BACKEND", "stream completed", answer.toString());
         chatMessageRepository.save(ChatMessage.assistant(
                 sessionId,
                 userId,
@@ -288,9 +294,19 @@ public class ChatService {
         }
 
         @Override
+        public void onLlmRequest(List<LlmMessage> messages) {
+            sendDebugLog(emitter, "BACKEND->LLM", "POST /chat/completions", llmRequestSummary(messages));
+        }
+
+        @Override
         public void onAnswerDelta(String delta) {
             answer.append(delta);
             sendEvent(emitter, "answer_delta", Map.of("delta", delta));
+        }
+
+        @Override
+        public void onLlmResponse(String answer) {
+            sendDebugLog(emitter, "LLM->BACKEND", "stream completed", answer);
         }
 
         @Override
@@ -326,6 +342,44 @@ public class ChatService {
         } catch (IOException ex) {
             throw new IllegalStateException("SSE 事件发送失败", ex);
         }
+    }
+
+    private void sendDebugLog(SseEmitter emitter, String direction, String title, String detail) {
+        sendEvent(emitter, "debug_log", Map.of(
+                "direction", direction,
+                "title", title,
+                "detail", truncate(detail, 4_000)
+        ));
+    }
+
+    private String llmRequestSummary(List<LlmMessage> messages) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("baseUrl", appProperties.getLlm().getBaseUrl());
+        summary.put("endpoint", "/chat/completions");
+        summary.put("model", appProperties.getLlm().getModel());
+        summary.put("stream", true);
+        summary.put("messageCount", messages.size());
+        summary.put("messages", messages.stream()
+                .map(message -> Map.of(
+                        "role", message.role(),
+                        "content", truncate(message.content(), 1_200)
+                ))
+                .toList());
+        try {
+            return objectMapper.writeValueAsString(summary);
+        } catch (Exception ex) {
+            return summary.toString();
+        }
+    }
+
+    private String truncate(String value, int maxLength) {
+        if (value == null) {
+            return "";
+        }
+        if (value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength) + "...[truncated]";
     }
 
     private Map<String, Object> errorPayload(String stage, String message, String rawSummary) {

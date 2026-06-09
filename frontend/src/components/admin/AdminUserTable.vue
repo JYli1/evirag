@@ -101,7 +101,7 @@ header h2 {
   overflow: auto;
   border: 1px solid var(--color-line);
   border-radius: 18px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.88);
   box-shadow: var(--shadow-card);
 }
 
@@ -125,7 +125,7 @@ header h2 {
 
 .row:not(.head):hover,
 .row.selected {
-  background: #eef5ff;
+  background: #eef5fb;
 }
 
 .row.selected {
@@ -133,7 +133,7 @@ header h2 {
 }
 
 .row.head {
-  background: #f8fbff;
+  background: var(--color-panel-muted);
   color: var(--color-muted);
   font-size: 12px;
   font-weight: 900;
@@ -171,7 +171,7 @@ button {
   height: 32px;
   border: 1px solid var(--color-line);
   border-radius: 12px;
-  background: #ffffff;
+  background: var(--color-panel);
   color: var(--color-brand-dark);
   font-weight: 900;
 }

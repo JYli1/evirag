@@ -56,8 +56,8 @@ import EviRagLogo from '@/assets/logo/EviRagLogo.vue';
   padding: 42px;
   overflow: hidden;
   background:
-    linear-gradient(140deg, rgba(37, 99, 235, 0.12), transparent 46%),
-    linear-gradient(180deg, #ffffff 0%, #edf4ff 100%);
+    radial-gradient(circle at 18% 16%, rgba(37, 90, 143, 0.1), transparent 28%),
+    linear-gradient(180deg, #ffffff 0%, #eef2f7 100%);
   border-right: 1px solid var(--color-line);
 }
 
@@ -97,7 +97,7 @@ import EviRagLogo from '@/assets/logo/EviRagLogo.vue';
 
 .brand-top span {
   padding: 7px 10px;
-  border: 1px solid rgba(37, 99, 235, 0.16);
+  border: 1px solid rgba(37, 90, 143, 0.16);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.76);
   color: var(--color-brand-dark);
@@ -149,7 +149,7 @@ h1 {
   border: 1px solid rgba(198, 211, 225, 0.72);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 12px 34px rgba(33, 53, 83, 0.07);
+  box-shadow: var(--shadow-sm);
 }
 
 .pipeline-map span {
@@ -158,15 +158,15 @@ h1 {
   min-height: 30px;
   padding: 0 10px;
   border-radius: 999px;
-  background: #f3f7ff;
-  color: #264064;
+  background: var(--color-panel-muted);
+  color: var(--color-brand-dark);
   font-size: 12px;
   font-weight: 900;
 }
 
 .pipeline-map i {
   height: 1px;
-  background: linear-gradient(90deg, rgba(37, 99, 235, 0.28), rgba(15, 118, 110, 0.16));
+  background: linear-gradient(90deg, rgba(37, 90, 143, 0.28), rgba(22, 116, 91, 0.16));
 }
 
 .brand-metrics {
@@ -179,7 +179,7 @@ h1 {
 
 .brand-metrics span {
   padding: 8px 11px;
-  border: 1px solid rgba(37, 99, 235, 0.16);
+  border: 1px solid rgba(37, 90, 143, 0.16);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.72);
   color: var(--color-brand-dark);
@@ -193,8 +193,8 @@ h1 {
   min-height: 100vh;
   padding: 36px;
   background:
-    radial-gradient(circle at 12% 12%, rgba(37, 99, 235, 0.05), transparent 28%),
-    #f8fbff;
+    radial-gradient(circle at 12% 12%, rgba(37, 90, 143, 0.06), transparent 28%),
+    #f7f9fc;
 }
 
 @media (max-width: 900px) {

@@ -123,7 +123,7 @@ onBeforeUnmount(() => window.clearInterval(timer));
   min-height: 46px;
   border: 1px solid var(--color-strong-line);
   border-radius: 12px;
-  background: #f8fbff;
+  background: var(--color-panel-muted);
   color: var(--color-brand-dark);
   font-weight: 900;
 }

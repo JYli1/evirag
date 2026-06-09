@@ -40,16 +40,17 @@ defineProps<{
 
 <style scoped>
 .evidence-panel {
-  height: 100vh;
+  height: calc(100vh - 28px);
   display: grid;
   grid-auto-rows: max-content;
   gap: 16px;
-  padding: 24px 20px;
-  border-left: 1px solid var(--color-line);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%);
+  padding: 20px;
+  border: 1px solid rgba(216, 224, 235, 0.82);
+  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.88);
   overflow-y: auto;
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.04);
-  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(18px);
 }
 
 .evidence-head,
@@ -64,55 +65,45 @@ defineProps<{
   margin: 0;
   color: var(--color-brand);
   font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-weight: 800;
 }
 
 .evidence-head strong {
   display: block;
   margin-top: 6px;
   color: var(--color-ink);
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--color-ink) 0%, var(--color-brand) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .evidence-head span {
   padding: 6px 12px;
   border: 1px solid var(--color-line);
   border-radius: 999px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  background: var(--color-panel-muted);
   color: var(--color-brand-dark);
   font-size: 11px;
-  font-weight: 700;
-  box-shadow: var(--shadow-xs);
+  font-weight: 800;
 }
 
 .query-box,
 .citation {
   border: 1px solid var(--color-line);
   border-radius: var(--radius-xl);
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow: var(--shadow-md);
-  transition: all var(--transition-base);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: var(--shadow-sm);
 }
 
 .query-box {
   padding: 14px 16px;
-  border-left: 3px solid var(--color-brand);
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-left: 4px solid var(--color-brand);
+  background: #eef5fb;
 }
 
 .query-box span {
   color: var(--color-brand-dark);
   font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-weight: 800;
 }
 
 .query-box p,
@@ -129,8 +120,8 @@ defineProps<{
 
 .citation:hover {
   transform: translateY(-2px);
-  border-color: var(--color-brand-light);
-  box-shadow: var(--shadow-lg);
+  border-color: rgba(37, 90, 143, 0.24);
+  box-shadow: var(--shadow-card);
 }
 
 .citation-head strong {
@@ -143,16 +134,15 @@ defineProps<{
 .citation-head span {
   padding: 4px 10px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-  color: #065f46;
+  background: rgba(22, 116, 91, 0.1);
+  color: var(--color-success);
   font-size: 13px;
-  font-weight: 700;
-  box-shadow: var(--shadow-xs);
+  font-weight: 800;
 }
 
 .citation-head span.low {
-  background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
-  color: #92400e;
+  background: rgba(163, 106, 31, 0.12);
+  color: var(--color-accent);
 }
 
 .citation small {
@@ -166,8 +156,8 @@ defineProps<{
   margin-left: 8px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
-  color: #92400e;
+  background: rgba(163, 106, 31, 0.12);
+  color: var(--color-accent);
   font-weight: 700;
   font-size: 11px;
 }
@@ -178,7 +168,7 @@ defineProps<{
   font-size: 13px;
   padding: 12px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: var(--color-panel-muted);
   border: 1px solid var(--color-line);
 }
 
@@ -189,7 +179,7 @@ defineProps<{
   font-size: 13px;
   line-height: 1.6;
   text-align: center;
-  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  background: var(--color-panel-muted);
   border-radius: var(--radius-lg);
   border: 1px dashed var(--color-line);
 }

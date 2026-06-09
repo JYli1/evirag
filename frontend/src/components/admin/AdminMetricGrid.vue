@@ -42,7 +42,7 @@ const metrics = computed(() => [
   padding: 16px;
   border: 1px solid var(--color-line);
   border-radius: 18px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.88);
   box-shadow: var(--shadow-card);
   transition:
     transform 0.16s ease,
@@ -52,7 +52,7 @@ const metrics = computed(() => [
 
 .metric-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(37, 99, 235, 0.22);
+  border-color: rgba(37, 90, 143, 0.22);
   box-shadow: 0 18px 46px rgba(33, 53, 83, 0.12);
 }
 

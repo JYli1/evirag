@@ -157,7 +157,7 @@ function formatDate(value: string) {
   padding: 16px;
   border: 1px solid var(--color-line);
   border-radius: 18px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.88);
   box-shadow: var(--shadow-card);
 }
 
@@ -201,7 +201,7 @@ header h2 {
   padding: 12px;
   border: 1px solid var(--color-line);
   border-radius: 14px;
-  background: #f8fbff;
+  background: var(--color-panel-muted);
 }
 
 .identity-strip div {
@@ -229,7 +229,7 @@ header h2 {
   padding: 10px;
   border: 1px solid var(--color-line);
   border-radius: 14px;
-  background: #f8fbff;
+  background: var(--color-panel-muted);
 }
 
 .detail-metrics strong {
@@ -245,7 +245,7 @@ header h2 {
   padding: 13px;
   border: 1px solid rgba(37, 99, 235, 0.14);
   border-radius: 14px;
-  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+  background: linear-gradient(180deg, var(--color-panel-muted) 0%, #ffffff 100%);
 }
 
 .visual-block {

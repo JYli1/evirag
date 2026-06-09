@@ -252,7 +252,9 @@ function documentPercent(value: number) {
   display: grid;
   grid-template-columns: 272px minmax(0, 1fr);
   overflow: hidden;
-  background: var(--color-soft);
+  background:
+    radial-gradient(circle at 16% 6%, rgba(37, 90, 143, 0.07), transparent 28%),
+    var(--color-soft);
 }
 
 .admin-sidebar {
@@ -262,7 +264,7 @@ function documentPercent(value: number) {
   gap: 20px;
   padding: 18px;
   border-right: 1px solid var(--color-line);
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.88);
   overflow-y: auto;
   box-shadow: 8px 0 28px rgba(33, 53, 83, 0.04);
 }
@@ -319,7 +321,7 @@ function documentPercent(value: number) {
 .admin-nav button.active {
   transform: translateY(-1px);
   border-color: rgba(37, 99, 235, 0.22);
-  background: #eef5ff;
+  background: #eef5fb;
 }
 
 .admin-nav button.active {
@@ -364,7 +366,7 @@ function documentPercent(value: number) {
   padding: 12px;
   border: 1px solid var(--color-line);
   border-radius: 16px;
-  background: #f8fbff;
+  background: var(--color-panel-muted);
 }
 
 .admin-account div {
@@ -420,7 +422,7 @@ function documentPercent(value: number) {
   padding: 16px 18px;
   border: 1px solid var(--color-line);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.86);
   box-shadow: var(--shadow-card);
 }
 
@@ -451,7 +453,7 @@ function documentPercent(value: number) {
   padding: 6px 10px;
   border: 1px solid var(--color-line);
   border-radius: 999px;
-  background: #f8fbff;
+  background: var(--color-panel-muted);
   color: var(--color-muted);
   font-size: 12px;
   font-weight: 900;
@@ -484,7 +486,7 @@ function documentPercent(value: number) {
   padding: 16px;
   border: 1px solid var(--color-line);
   border-radius: 18px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.88);
   box-shadow: var(--shadow-card);
 }
 
@@ -538,7 +540,7 @@ function documentPercent(value: number) {
   padding: 16px;
   border: 1px solid var(--color-line);
   border-radius: 18px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.88);
   box-shadow: var(--shadow-card);
 }
 

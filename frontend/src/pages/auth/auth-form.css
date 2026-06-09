@@ -5,8 +5,9 @@
   padding: 28px;
   border: 1px solid var(--color-line);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 22px 60px rgba(33, 53, 83, 0.12);
+  backdrop-filter: blur(18px);
 }
 
 .form-head {
@@ -44,7 +45,7 @@ input {
   padding: 0 13px;
   border: 1px solid var(--color-line);
   border-radius: 12px;
-  background: #f8fbff;
+  background: var(--color-panel);
   color: var(--color-ink);
   box-shadow: var(--shadow-field);
   outline: none;
@@ -52,17 +53,17 @@ input {
 
 input:focus {
   border-color: var(--color-brand);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+  box-shadow: 0 0 0 4px rgba(37, 90, 143, 0.1);
 }
 
 .primary-action {
   min-height: 48px;
   border: 0;
   border-radius: 14px;
-  background: var(--color-brand-dark);
+  background: linear-gradient(135deg, var(--color-brand-dark), var(--color-brand));
   color: #ffffff;
   font-weight: 900;
-  box-shadow: 0 12px 26px rgba(29, 78, 216, 0.18);
+  box-shadow: var(--shadow-glow);
 }
 
 .primary-action:disabled {

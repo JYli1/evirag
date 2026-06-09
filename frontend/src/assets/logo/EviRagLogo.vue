@@ -57,19 +57,19 @@ defineProps<{
 
 .e-line {
   fill: none;
-  stroke: #2563eb;
+  stroke: #255a8f;
   stroke-width: 3.6;
   stroke-linecap: round;
 }
 
 .quote {
-  fill: rgba(217, 119, 6, 0.92);
+  fill: rgba(163, 106, 31, 0.9);
 }
 
 .search-circle,
 .search {
   fill: none;
-  stroke: #0f766e;
+  stroke: #16745b;
   stroke-width: 3.2;
   stroke-linecap: round;
 }

@@ -39,9 +39,9 @@ function send() {
   display: grid;
   grid-template-columns: 1fr 48px;
   gap: 10px;
-  padding: 16px;
+  padding: 16px 18px;
   border-top: 1px solid var(--color-line);
-  background: rgba(255, 255, 255, 0.96);
+  background: rgba(255, 255, 255, 0.84);
 }
 
 textarea {
@@ -51,8 +51,8 @@ textarea {
   resize: none;
   padding: 13px 14px;
   border: 1px solid var(--color-line);
-  border-radius: 16px;
-  background: #f8fbff;
+  border-radius: var(--radius-lg);
+  background: var(--color-panel);
   color: var(--color-ink);
   line-height: 1.6;
   outline: none;
@@ -60,7 +60,7 @@ textarea {
 
 textarea:focus {
   border-color: var(--color-brand);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 0 0 4px rgba(37, 90, 143, 0.1);
 }
 
 button {
@@ -68,12 +68,17 @@ button {
   width: 48px;
   height: 48px;
   border: 0;
-  border-radius: 16px;
-  background: var(--color-brand-dark);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--color-brand-dark), var(--color-brand));
   color: #ffffff;
   font-size: 0;
   font-weight: 900;
-  box-shadow: 0 12px 26px rgba(29, 78, 216, 0.2);
+  box-shadow: var(--shadow-glow);
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-glow-strong);
 }
 
 button::before {

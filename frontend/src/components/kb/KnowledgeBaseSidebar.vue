@@ -2,6 +2,16 @@
   <aside class="kb-sidebar">
     <header class="sidebar-head">
       <EviRagLogo compact />
+      <div class="account-popover">
+        <button class="account-trigger" type="button" aria-label="账号信息">
+          <span>{{ userInitial }}</span>
+        </button>
+        <div class="account-card">
+          <small>当前账号</small>
+          <strong>{{ user?.email || '未登录' }}</strong>
+          <p>{{ user?.role === 'ADMIN' ? '管理员' : '普通用户' }} · ID {{ user?.id || '-' }}</p>
+        </div>
+      </div>
       <div class="head-actions">
         <RouterLink v-if="isAdmin" class="ghost-link" to="/admin">管理</RouterLink>
         <button class="ghost-button" type="button" @click="$emit('logout')" title="退出登录">退出</button>
@@ -62,18 +72,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 import type { KnowledgeDocument } from '@/api/document';
 import type { ChatSession } from '@/api/chat';
 import type { KnowledgeBase } from '@/api/knowledge';
+import type { AuthUser } from '@/api/auth';
 import EviRagLogo from '@/assets/logo/EviRagLogo.vue';
 import DocumentUploader from '@/components/document/DocumentUploader.vue';
 
-defineProps<{
+const props = defineProps<{
   knowledgeBases: KnowledgeBase[];
   documents: KnowledgeDocument[];
   sessions: ChatSession[];
+  user: AuthUser | null;
   activeKnowledgeBaseId: number | null;
   activeSessionId: number | null;
   uploading: boolean;
@@ -93,6 +105,8 @@ const emit = defineEmits<{
 
 const newName = ref('');
 
+const userInitial = computed(() => (props.user?.email?.slice(0, 1) || 'U').toUpperCase());
+
 function createKb() {
   if (!newName.value) return;
   emit('createKnowledgeBase', newName.value);
@@ -102,15 +116,18 @@ function createKb() {
 
 <style scoped>
 .kb-sidebar {
-  height: 100vh;
+  height: calc(100vh - 28px);
   display: grid;
   grid-template-rows: auto auto minmax(120px, auto) auto minmax(80px, 200px);
-  gap: 16px;
-  padding: 20px;
+  gap: 14px;
+  padding: 18px;
   border-right: 1px solid var(--color-line);
-  background: var(--color-panel);
+  border: 1px solid rgba(216, 224, 235, 0.82);
+  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.88);
   overflow-y: auto;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(18px);
 }
 
 .sidebar-head,
@@ -119,6 +136,90 @@ function createKb() {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.account-popover {
+  position: relative;
+  margin-left: auto;
+}
+
+.account-trigger {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(42, 118, 148, 0.28);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.9), transparent 32%),
+    linear-gradient(135deg, var(--color-brand-dark), var(--color-cyan));
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+  box-shadow: var(--shadow-glow);
+}
+
+.account-card {
+  position: absolute;
+  top: 44px;
+  left: 0;
+  z-index: 20;
+  width: 236px;
+  display: grid;
+  gap: 7px;
+  padding: 15px;
+  border: 1px solid rgba(42, 118, 148, 0.22);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(239, 247, 251, 0.92)),
+    var(--color-panel);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px) scale(0.98);
+  transition:
+    opacity 360ms ease,
+    transform 360ms ease;
+  backdrop-filter: blur(18px);
+}
+
+.account-card::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 12px;
+  width: 10px;
+  height: 10px;
+  border-left: 1px solid rgba(42, 118, 148, 0.22);
+  border-top: 1px solid rgba(42, 118, 148, 0.22);
+  background: rgba(255, 255, 255, 0.94);
+  transform: rotate(45deg);
+}
+
+.account-popover:hover .account-card,
+.account-popover:focus-within .account-card {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.account-card small {
+  color: var(--color-cyan);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.account-card strong {
+  overflow-wrap: anywhere;
+  color: var(--color-ink);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.account-card p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
 }
 
 .head-actions {
@@ -132,48 +233,41 @@ function createKb() {
   place-items: center;
   min-height: 32px;
   padding: 0 12px;
-  border: 1px solid var(--color-brand);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-brand);
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-panel-muted);
+  color: var(--color-brand-dark);
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  transition: all var(--transition-fast);
 }
 
 .ghost-link:hover {
-  background: var(--color-brand);
-  color: var(--color-soft);
-  box-shadow: var(--shadow-glow);
+  border-color: rgba(37, 90, 143, 0.34);
+  background: #eef5fb;
 }
 
 .ghost-button,
 .session-head button,
 .create-kb button {
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-sm);
-  background: var(--color-soft);
+  border-radius: 999px;
+  background: var(--color-panel-muted);
   color: var(--color-ink);
   font-weight: 700;
-  transition: all var(--transition-fast);
 }
 
 .ghost-button:hover,
 .session-head button:hover,
 .create-kb button:hover {
-  border-color: var(--color-brand);
-  background: var(--color-brand);
-  color: var(--color-soft);
-  box-shadow: var(--shadow-glow);
+  border-color: rgba(37, 90, 143, 0.34);
+  background: #eef5fb;
+  color: var(--color-brand-dark);
 }
 
 .ghost-button {
   padding: 8px 12px;
   font-size: 12px;
-  text-transform: uppercase;
 }
 
 .create-kb {
@@ -182,8 +276,8 @@ function createKb() {
   gap: 10px;
   padding: 12px;
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  background: var(--color-soft);
+  border-radius: var(--radius-lg);
+  background: var(--color-panel-muted);
 }
 
 .create-kb input {
@@ -191,17 +285,15 @@ function createKb() {
   height: 40px;
   padding: 0 14px;
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--color-panel);
   color: var(--color-ink);
   outline: none;
-  transition: all var(--transition-fast);
-  font-family: monospace;
 }
 
 .create-kb input:focus {
   border-color: var(--color-brand);
-  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
+  box-shadow: 0 0 0 3px rgba(37, 90, 143, 0.1);
 }
 
 .create-kb input::placeholder {
@@ -221,28 +313,19 @@ function createKb() {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  color: var(--color-terminal-cyan);
-  font-size: 11px;
+  color: var(--color-muted);
+  font-size: 12px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  font-family: monospace;
-}
-
-.section-title::before,
-.session-head span::before {
-  content: '>';
-  color: var(--color-brand);
-  margin-right: 4px;
+  letter-spacing: 0;
 }
 
 .section-title small {
   color: var(--color-muted);
   font-size: 11px;
   font-weight: 700;
-  background: var(--color-soft);
+  background: var(--color-panel-muted);
   padding: 2px 8px;
-  border-radius: var(--radius-sm);
+  border-radius: 999px;
   border: 1px solid var(--color-line);
 }
 
@@ -251,10 +334,9 @@ function createKb() {
   width: 100%;
   text-align: left;
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-sm);
-  background: var(--color-soft);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.72);
   color: var(--color-ink);
-  transition: all var(--transition-fast);
   position: relative;
 }
 
@@ -267,15 +349,13 @@ function createKb() {
 .kb-item strong {
   overflow-wrap: anywhere;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--color-terminal-green);
-  font-family: monospace;
+  font-weight: 800;
+  color: var(--color-ink);
 }
 
 .kb-item small {
   color: var(--color-muted);
   font-size: 11px;
-  font-family: monospace;
 }
 
 .session-item {
@@ -285,34 +365,34 @@ function createKb() {
   white-space: nowrap;
   font-size: 12px;
   font-weight: 500;
-  font-family: monospace;
 }
 
 .kb-item.active,
 .session-item.active {
-  border-color: var(--color-brand);
-  background: rgba(14, 165, 233, 0.1);
+  border-color: rgba(37, 90, 143, 0.3);
+  background: #eef5fb;
   box-shadow: inset 3px 0 0 var(--color-brand);
 }
 
 .kb-item.active::after,
 .session-item.active::after {
-  content: '●';
+  content: '';
   position: absolute;
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--color-terminal-green);
-  font-size: 8px;
-  animation: blink 1.5s ease-in-out infinite;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-success);
 }
 
 .kb-item:hover,
 .session-item:hover {
-  border-color: var(--color-brand);
-  background: rgba(14, 165, 233, 0.15);
-  transform: translateX(2px);
-  box-shadow: var(--shadow-glow);
+  border-color: rgba(37, 90, 143, 0.28);
+  background: #f6f9fc;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-xs);
 }
 
 .empty {
@@ -322,14 +402,8 @@ function createKb() {
   font-size: 12px;
   line-height: 1.6;
   text-align: center;
-  background: var(--color-soft);
-  border-radius: var(--radius-sm);
+  background: var(--color-panel-muted);
+  border-radius: var(--radius-md);
   border: 1px dashed var(--color-line);
-  font-family: monospace;
-}
-
-.empty::before {
-  content: '// ';
-  color: var(--color-terminal-cyan);
 }
 </style>
