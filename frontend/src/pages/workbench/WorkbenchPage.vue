@@ -1,36 +1,54 @@
 <template>
   <main class="workbench-page">
-    <KnowledgeBaseSidebar
-      :knowledge-bases="knowledgeBases"
-      :documents="documents"
-      :sessions="sessions"
-      :active-knowledge-base-id="activeKnowledgeBaseId"
-      :active-session-id="activeSessionId"
-      :uploading="uploading"
-      :deleting-document-id="deletingDocumentId"
-      :is-admin="authStore.isAdmin"
-      @select-knowledge-base="selectKnowledgeBase"
-      @create-knowledge-base="handleCreateKnowledgeBase"
-      @upload-document="handleUploadDocument"
-      @delete-document="handleDeleteDocument"
-      @select-session="selectSession"
-      @create-session="handleCreateSession"
-      @logout="logout"
-    />
+    <div class="resizable-sidebar" :style="{ width: leftWidth + 'px' }">
+      <KnowledgeBaseSidebar
+        :knowledge-bases="knowledgeBases"
+        :documents="documents"
+        :sessions="sessions"
+        :active-knowledge-base-id="activeKnowledgeBaseId"
+        :active-session-id="activeSessionId"
+        :uploading="uploading"
+        :deleting-document-id="deletingDocumentId"
+        :is-admin="authStore.isAdmin"
+        @select-knowledge-base="selectKnowledgeBase"
+        @create-knowledge-base="handleCreateKnowledgeBase"
+        @upload-document="handleUploadDocument"
+        @delete-document="handleDeleteDocument"
+        @select-session="selectSession"
+        @create-session="handleCreateSession"
+        @logout="logout"
+      />
+    </div>
 
-    <ChatPanel
-      :knowledge-base-name="activeKnowledgeBase?.name || ''"
-      :session-title="activeSession?.title || ''"
-      :messages="messages"
-      :retrieval-text="retrievalText"
-      :can-send="!sending"
-      :can-create-session="!sending"
-      :sending="sending"
-      @send="sendQuestion"
-      @create-session="handleCreateSession"
-    />
+    <div
+      class="resizer resizer-left"
+      @mousedown="startResize($event, 'left')"
+      title="拖动调整侧边栏宽度"
+    ></div>
 
-    <EvidencePanel :citations="citations" :query="rewrittenQuery" />
+    <div class="resizable-chat">
+      <ChatPanel
+        :knowledge-base-name="activeKnowledgeBase?.name || ''"
+        :session-title="activeSession?.title || ''"
+        :messages="messages"
+        :retrieval-text="retrievalText"
+        :can-send="!sending"
+        :can-create-session="!sending"
+        :sending="sending"
+        @send="sendQuestion"
+        @create-session="handleCreateSession"
+      />
+    </div>
+
+    <div
+      class="resizer resizer-right"
+      @mousedown="startResize($event, 'right')"
+      title="拖动调整证据面板宽度"
+    ></div>
+
+    <div class="resizable-evidence" :style="{ width: rightWidth + 'px' }">
+      <EvidencePanel :citations="citations" :query="rewrittenQuery" />
+    </div>
 
     <p v-if="error" class="global-error">{{ error }}</p>
   </main>
@@ -83,6 +101,52 @@ const activeKnowledgeBase = computed(() =>
 const activeSession = computed(() =>
   sessions.value.find((item) => item.id === activeSessionId.value),
 );
+
+// 可调整大小的面板宽度
+const leftWidth = ref(304);
+const rightWidth = ref(360);
+const minPanelWidth = 240;
+const maxLeftWidth = 500;
+const maxRightWidth = 600;
+
+let isResizing = false;
+let resizeSide: 'left' | 'right' = 'left';
+let startX = 0;
+let startWidth = 0;
+
+function startResize(event: MouseEvent, side: 'left' | 'right') {
+  isResizing = true;
+  resizeSide = side;
+  startX = event.clientX;
+  startWidth = side === 'left' ? leftWidth.value : rightWidth.value;
+
+  document.addEventListener('mousemove', handleResize);
+  document.addEventListener('mouseup', stopResize);
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+}
+
+function handleResize(event: MouseEvent) {
+  if (!isResizing) return;
+
+  const delta = event.clientX - startX;
+
+  if (resizeSide === 'left') {
+    const newWidth = Math.max(minPanelWidth, Math.min(maxLeftWidth, startWidth + delta));
+    leftWidth.value = newWidth;
+  } else {
+    const newWidth = Math.max(minPanelWidth, Math.min(maxRightWidth, startWidth - delta));
+    rightWidth.value = newWidth;
+  }
+}
+
+function stopResize() {
+  isResizing = false;
+  document.removeEventListener('mousemove', handleResize);
+  document.removeEventListener('mouseup', stopResize);
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+}
 
 onMounted(async () => {
   await loadKnowledgeBases();
@@ -344,50 +408,134 @@ async function logout() {
 <style scoped>
 .workbench-page {
   position: relative;
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: 292px minmax(0, 1fr) 340px;
+  height: 100vh;
+  display: flex;
+  overflow: hidden;
   background: var(--color-soft);
+}
+
+.workbench-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--color-brand);
+  box-shadow: 0 0 10px var(--color-brand);
+}
+
+.resizable-sidebar,
+.resizable-evidence {
+  flex-shrink: 0;
+}
+
+.resizable-chat {
+  flex: 1;
+  min-width: 0;
+}
+
+.resizer {
+  width: 12px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: transparent;
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.resizer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  height: 100%;
+  background: var(--color-line);
+  transition: all var(--transition-base);
+}
+
+.resizer:hover::before {
+  background: var(--color-brand);
+  box-shadow: 0 0 8px var(--color-brand);
+  width: 2px;
+}
+
+.resizer:hover {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(14, 165, 233, 0.1) 50%,
+    transparent 100%);
+}
+
+.resizer:active::before {
+  background: var(--color-terminal-cyan);
+  box-shadow: 0 0 12px var(--color-terminal-cyan);
 }
 
 .global-error {
   position: fixed;
   left: 50%;
-  bottom: 18px;
+  bottom: 24px;
   z-index: 10;
   max-width: min(680px, calc(100vw - 32px));
   margin: 0;
-  padding: 10px 13px;
+  padding: 12px 16px;
   transform: translateX(-50%);
-  border: 1px solid rgba(178, 74, 63, 0.24);
-  border-radius: var(--radius-md);
-  background: rgba(255, 248, 246, 0.95);
-  color: #7b342d;
-  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--color-danger);
+  border-left: 3px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  background: rgba(30, 41, 59, 0.95);
+  color: var(--color-terminal-red);
+  box-shadow: var(--shadow-md), 0 0 20px rgba(239, 68, 68, 0.3);
   font-size: 13px;
+  font-weight: 500;
   line-height: 1.6;
+  font-family: monospace;
+  animation: slideUpError 0.3s ease-out;
 }
 
-@media (max-width: 1120px) {
-  .workbench-page {
-    grid-template-columns: 260px minmax(0, 1fr);
+.global-error::before {
+  content: '[ERROR] ';
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+@keyframes slideUpError {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
   }
 }
 
 @media (max-width: 1120px) {
-  .workbench-page :deep(.evidence-panel) {
+  .resizable-evidence,
+  .resizer-right {
     display: none;
   }
 }
 
 @media (max-width: 760px) {
   .workbench-page {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .resizable-sidebar {
+    width: 100% !important;
+  }
+
+  .resizer-left {
+    display: none;
   }
 
   .workbench-page :deep(.kb-sidebar) {
     min-height: auto;
-    max-height: 48vh;
+    max-height: 50vh;
     border-right: 0;
     border-bottom: 1px solid var(--color-line);
   }

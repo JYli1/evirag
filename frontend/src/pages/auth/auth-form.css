@@ -1,12 +1,12 @@
 .auth-card {
-  width: min(100%, 430px);
+  width: min(100%, 440px);
   display: grid;
-  gap: 18px;
-  padding: 30px;
+  gap: 16px;
+  padding: 28px;
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: var(--shadow-soft);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 22px 60px rgba(33, 53, 83, 0.12);
 }
 
 .form-head {
@@ -19,13 +19,13 @@
   margin: 0;
   color: var(--color-brand);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .form-head h2 {
   margin: 0;
   color: var(--color-ink);
-  font-size: 28px;
+  font-size: 26px;
   line-height: 1.25;
   letter-spacing: 0;
 }
@@ -34,8 +34,8 @@ label {
   display: grid;
   gap: 8px;
   color: var(--color-ink);
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 900;
 }
 
 input {
@@ -43,8 +43,8 @@ input {
   min-height: 46px;
   padding: 0 13px;
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-sm);
-  background: #fbfdf9;
+  border-radius: 12px;
+  background: #f8fbff;
   color: var(--color-ink);
   box-shadow: var(--shadow-field);
   outline: none;
@@ -52,16 +52,17 @@ input {
 
 input:focus {
   border-color: var(--color-brand);
-  box-shadow: 0 0 0 3px rgba(31, 122, 87, 0.14);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 
 .primary-action {
   min-height: 48px;
   border: 0;
-  border-radius: var(--radius-sm);
+  border-radius: 14px;
   background: var(--color-brand-dark);
   color: #ffffff;
   font-weight: 900;
+  box-shadow: 0 12px 26px rgba(29, 78, 216, 0.18);
 }
 
 .primary-action:disabled {
@@ -72,7 +73,8 @@ input:focus {
   margin: 0;
   padding: 10px 12px;
   border-left: 3px solid var(--color-danger);
-  background: rgba(178, 74, 63, 0.08);
+  border-radius: 10px;
+  background: rgba(190, 18, 60, 0.08);
   color: #7b342d;
   font-size: 13px;
   line-height: 1.6;
@@ -82,5 +84,5 @@ input:focus {
   justify-self: start;
   color: var(--color-brand-dark);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 900;
 }

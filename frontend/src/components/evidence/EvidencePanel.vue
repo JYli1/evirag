@@ -1,8 +1,11 @@
 <template>
   <aside class="evidence-panel">
-    <header>
-      <p>引用证据</p>
-      <strong>{{ citations.length }} 条</strong>
+    <header class="evidence-head">
+      <div>
+        <p>引用证据</p>
+        <strong>{{ citations.length }} 条</strong>
+      </div>
+      <span>Cosine</span>
     </header>
 
     <section v-if="query" class="query-box">
@@ -37,17 +40,19 @@ defineProps<{
 
 <style scoped>
 .evidence-panel {
-  min-height: 100vh;
+  height: 100vh;
   display: grid;
   grid-auto-rows: max-content;
-  gap: 13px;
-  padding: 18px;
+  gap: 16px;
+  padding: 24px 20px;
   border-left: 1px solid var(--color-line);
-  background: rgba(251, 253, 249, 0.92);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%);
   overflow-y: auto;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(12px);
 }
 
-header,
+.evidence-head,
 .citation-head {
   display: flex;
   align-items: center;
@@ -55,82 +60,137 @@ header,
   gap: 12px;
 }
 
-header p {
+.evidence-head p {
   margin: 0;
-  color: var(--color-muted);
+  color: var(--color-brand);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-header strong {
+.evidence-head strong {
+  display: block;
+  margin-top: 6px;
   color: var(--color-ink);
-  font-size: 18px;
+  font-size: 24px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--color-ink) 0%, var(--color-brand) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.evidence-head span {
+  padding: 6px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  color: var(--color-brand-dark);
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: var(--shadow-xs);
 }
 
 .query-box,
 .citation {
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  background: #ffffff;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-base);
 }
 
 .query-box {
-  padding: 12px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--color-brand);
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
 }
 
 .query-box span {
-  color: var(--color-muted);
+  color: var(--color-brand-dark);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .query-box p,
 .citation p {
-  margin: 7px 0 0;
+  margin: 8px 0 0;
   color: var(--color-ink);
-  line-height: 1.65;
+  line-height: 1.7;
+  font-size: 14px;
 }
 
 .citation {
-  padding: 12px;
+  padding: 14px 16px;
+}
+
+.citation:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-brand-light);
+  box-shadow: var(--shadow-lg);
 }
 
 .citation-head strong {
   overflow-wrap: anywhere;
   font-size: 13px;
+  font-weight: 700;
+  color: var(--color-ink);
 }
 
 .citation-head span {
-  color: var(--color-brand-dark);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #065f46;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 700;
+  box-shadow: var(--shadow-xs);
 }
 
 .citation-head span.low {
-  color: var(--color-accent);
+  background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+  color: #92400e;
 }
 
 .citation small {
   display: block;
-  margin-top: 6px;
+  margin-top: 8px;
   color: var(--color-muted);
+  font-size: 12px;
 }
 
 .citation b {
-  margin-left: 6px;
-  color: var(--color-accent);
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+  color: #92400e;
+  font-weight: 700;
+  font-size: 11px;
 }
 
 .citation p {
-  max-height: 178px;
+  max-height: 200px;
   overflow: auto;
   font-size: 13px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid var(--color-line);
 }
 
 .empty {
   margin: 0;
+  padding: 20px;
   color: var(--color-muted);
   font-size: 13px;
   line-height: 1.6;
+  text-align: center;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--color-line);
 }
 </style>

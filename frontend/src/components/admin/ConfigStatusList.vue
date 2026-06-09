@@ -35,6 +35,11 @@ defineProps<{
 .config-list {
   display: grid;
   gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--color-line);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: var(--shadow-card);
 }
 
 header {
@@ -78,8 +83,8 @@ header span {
   gap: 8px 12px;
   padding: 12px;
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  background: #ffffff;
+  border-radius: 16px;
+  background: #f8fbff;
 }
 
 .config-item strong,
@@ -103,7 +108,7 @@ header span {
 .config-item p {
   grid-column: 1 / -1;
   margin: 0;
-  color: rgba(102, 116, 109, 0.82);
+  color: rgba(107, 120, 140, 0.88);
   font-size: 12px;
   line-height: 1.55;
 }
@@ -111,20 +116,20 @@ header span {
 .pill {
   align-self: start;
   padding: 4px 7px;
-  border-radius: var(--radius-sm);
-  background: rgba(181, 138, 42, 0.12);
+  border-radius: 999px;
+  background: rgba(217, 119, 6, 0.12);
   color: var(--color-accent);
   font-size: 12px;
   font-weight: 900;
 }
 
 .pill.ok {
-  background: rgba(31, 122, 87, 0.1);
-  color: var(--color-brand-dark);
+  background: rgba(15, 118, 110, 0.1);
+  color: #0f766e;
 }
 
 .pill.miss {
-  background: rgba(178, 74, 63, 0.1);
+  background: rgba(190, 18, 60, 0.1);
   color: var(--color-danger);
 }
 

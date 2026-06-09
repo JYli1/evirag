@@ -1,14 +1,26 @@
 <template>
   <main class="auth-shell">
     <section class="brand-panel">
-      <EviRagLogo />
+      <div class="brand-top">
+        <EviRagLogo />
+        <span>RAG Console</span>
+      </div>
       <div class="brand-copy">
         <p class="kicker">证据增强文档问答系统</p>
-        <h1>把课程资料、项目文档和知识库变成可追溯的问答工作台</h1>
+        <h1>可检索、可引用、可管理的文档问答工作台</h1>
         <p>
           上传 PDF、DOCX、TXT、Markdown 后，EviRAG 会完成解析、切片、向量检索和引用展示，
           让每次回答都有依据可查。
         </p>
+      </div>
+      <div class="pipeline-map" aria-label="RAG 工作流">
+        <span>上传</span>
+        <i></i>
+        <span>切片</span>
+        <i></i>
+        <span>检索</span>
+        <i></i>
+        <span>回答</span>
       </div>
       <div class="brand-metrics" aria-label="系统能力">
         <span>多知识库</span>
@@ -31,7 +43,7 @@ import EviRagLogo from '@/assets/logo/EviRagLogo.vue';
 .auth-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: minmax(360px, 0.92fr) minmax(420px, 1.08fr);
+  grid-template-columns: minmax(360px, 0.9fr) minmax(420px, 1.1fr);
   background: var(--color-soft);
 }
 
@@ -44,19 +56,53 @@ import EviRagLogo from '@/assets/logo/EviRagLogo.vue';
   padding: 42px;
   overflow: hidden;
   background:
-    linear-gradient(140deg, rgba(31, 122, 87, 0.14), transparent 42%),
-    linear-gradient(180deg, #fbfdf9 0%, #edf5ef 100%);
+    linear-gradient(140deg, rgba(37, 99, 235, 0.12), transparent 46%),
+    linear-gradient(180deg, #ffffff 0%, #edf4ff 100%);
   border-right: 1px solid var(--color-line);
 }
 
+.brand-panel::before,
 .brand-panel::after {
   content: "";
   position: absolute;
-  inset: auto -80px 70px auto;
-  width: 280px;
-  height: 280px;
-  border: 1px solid rgba(31, 122, 87, 0.28);
-  transform: rotate(10deg);
+  pointer-events: none;
+}
+
+.brand-panel::before {
+  inset: 112px 42px auto auto;
+  width: 190px;
+  height: 190px;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 18px;
+  transform: rotate(12deg);
+}
+
+.brand-panel::after {
+  inset: auto -72px 78px auto;
+  width: 260px;
+  height: 260px;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 28px;
+  transform: rotate(-12deg);
+}
+
+.brand-top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand-top span {
+  padding: 7px 10px;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--color-brand-dark);
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .brand-copy {
@@ -69,13 +115,14 @@ import EviRagLogo from '@/assets/logo/EviRagLogo.vue';
 .kicker {
   margin: 0 0 14px;
   color: var(--color-brand-dark);
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
 }
 
 h1 {
   margin: 0;
-  max-width: 13em;
+  max-width: 12em;
   color: var(--color-ink);
   font-size: clamp(34px, 5vw, 64px);
   line-height: 1.08;
@@ -86,8 +133,40 @@ h1 {
   margin: 22px 0 0;
   max-width: 520px;
   color: var(--color-muted);
-  font-size: 16px;
-  line-height: 1.85;
+  font-size: 15px;
+  line-height: 1.82;
+}
+
+.pipeline-map {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 520px);
+  padding: 12px;
+  border: 1px solid rgba(198, 211, 225, 0.72);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 12px 34px rgba(33, 53, 83, 0.07);
+}
+
+.pipeline-map span {
+  display: grid;
+  place-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #f3f7ff;
+  color: #264064;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.pipeline-map i {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.28), rgba(15, 118, 110, 0.16));
 }
 
 .brand-metrics {
@@ -100,12 +179,12 @@ h1 {
 
 .brand-metrics span {
   padding: 8px 11px;
-  border: 1px solid rgba(31, 122, 87, 0.26);
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
   color: var(--color-brand-dark);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 900;
 }
 
 .form-panel {
@@ -113,6 +192,9 @@ h1 {
   place-items: center;
   min-height: 100vh;
   padding: 36px;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(37, 99, 235, 0.05), transparent 28%),
+    #f8fbff;
 }
 
 @media (max-width: 900px) {
@@ -129,6 +211,10 @@ h1 {
 
   .brand-copy {
     margin: 36px 0 28px;
+  }
+
+  .pipeline-map {
+    margin-bottom: 20px;
   }
 
   h1 {

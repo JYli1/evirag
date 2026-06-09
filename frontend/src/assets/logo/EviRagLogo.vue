@@ -43,33 +43,33 @@ defineProps<{
 }
 
 .sheet {
-  fill: #fbfdf9;
-  stroke: #173f31;
+  fill: #ffffff;
+  stroke: #172033;
   stroke-width: 2.2;
 }
 
 .fold {
   fill: none;
-  stroke: #173f31;
+  stroke: #172033;
   stroke-width: 2.2;
   stroke-linejoin: round;
 }
 
 .e-line {
   fill: none;
-  stroke: #1f7a57;
+  stroke: #2563eb;
   stroke-width: 3.6;
   stroke-linecap: round;
 }
 
 .quote {
-  fill: rgba(181, 138, 42, 0.95);
+  fill: rgba(217, 119, 6, 0.92);
 }
 
 .search-circle,
 .search {
   fill: none;
-  stroke: #0d4f39;
+  stroke: #0f766e;
   stroke-width: 3.2;
   stroke-linecap: round;
 }

@@ -37,10 +37,11 @@ defineEmits<{
 
 <style scoped>
 .chat-panel {
-  min-height: 100vh;
+  height: 100vh;
   display: grid;
   grid-template-rows: auto 1fr auto;
-  background: #f7faf7;
+  overflow: hidden;
+  background: var(--color-soft);
 }
 
 .chat-head {
@@ -48,9 +49,22 @@ defineEmits<{
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding: 17px 22px;
+  min-height: 64px;
+  padding: 16px 24px;
   border-bottom: 1px solid var(--color-line);
-  background: rgba(251, 253, 249, 0.96);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-head::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: var(--color-brand);
+  opacity: 0.3;
 }
 
 .chat-head p,
@@ -59,25 +73,56 @@ defineEmits<{
 }
 
 .chat-head p {
+  color: var(--color-terminal-cyan);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-family: monospace;
+}
+
+.chat-head p::before {
+  content: '// ';
   color: var(--color-muted);
-  font-size: 12px;
-  font-weight: 900;
 }
 
 .chat-head h2 {
-  margin-top: 4px;
-  color: var(--color-ink);
-  font-size: 20px;
-  letter-spacing: 0;
+  margin-top: 6px;
+  color: var(--color-terminal-green);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  font-family: monospace;
 }
 
 .chat-head button {
-  min-width: 88px;
+  min-width: 100px;
   height: 36px;
-  border: 1px solid var(--color-line);
+  padding: 0 20px;
+  border: 1px solid var(--color-brand);
   border-radius: var(--radius-sm);
-  background: #ffffff;
-  color: var(--color-brand-dark);
-  font-weight: 900;
+  background: transparent;
+  color: var(--color-brand);
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all var(--transition-fast);
+  font-family: monospace;
+}
+
+.chat-head button:hover:not(:disabled) {
+  background: var(--color-brand);
+  color: var(--color-soft);
+  box-shadow: var(--shadow-glow);
+}
+
+.chat-head button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.chat-head button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 </style>
