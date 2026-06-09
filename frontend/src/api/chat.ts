@@ -70,7 +70,10 @@ export async function streamChatMessage(sessionId: number, content: string, hand
   const token = tokenStorage().get();
   const url = `/api/sessions/${sessionId}/messages/stream`;
   const body = { content };
+  // 这些回调不是发给后端的业务参数，而是给工作台“过程日志”用的：
+  // 用户能看到前端发了什么请求、后端是否接收成功、后续检索和 LLM 调用走到哪一步。
   handlers.onClientRequest?.({ method: 'POST', url, body });
+  // axios 更适合普通 JSON 请求；SSE/ReadableStream 需要边收到边读取，所以这里直接使用 fetch。
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -95,6 +98,7 @@ export async function streamChatMessage(sessionId: number, content: string, hand
       break;
     }
     buffer += decoder.decode(value, { stream: true });
+    // 网络分包不一定刚好按一个 SSE 事件切开，buffer 会保留未读完整的半个事件。
     buffer = consumeEvents(buffer, handlers);
   }
   consumeEvents(buffer + '\n\n', handlers);
@@ -102,6 +106,7 @@ export async function streamChatMessage(sessionId: number, content: string, hand
 
 function consumeEvents(buffer: string, handlers: RagStreamHandlers) {
   let pending = buffer;
+  // 后端 SseEmitter 输出的是标准 SSE 格式：多个字段行组成一个事件，事件之间用空行分隔。
   let boundary = pending.indexOf('\n\n');
   while (boundary >= 0) {
     const block = pending.slice(0, boundary);
@@ -118,6 +123,9 @@ function dispatchEventBlock(block: string, handlers: RagStreamHandlers) {
   }
   let eventName = 'message';
   const dataLines: string[] = [];
+  // 一个 SSE 事件通常长这样：
+  // event: answer_delta
+  // data: {"delta":"一小段回答"}
   for (const rawLine of block.split(/\r?\n/)) {
     const line = rawLine.trimEnd();
     if (line.startsWith('event:')) {
@@ -127,6 +135,7 @@ function dispatchEventBlock(block: string, handlers: RagStreamHandlers) {
     }
   }
   const payload = parsePayload(dataLines.join('\n'));
+  // 事件名是前后端约定：后端只负责发事件，前端在这里分发给页面状态和日志面板。
   if (eventName === 'retrieval_start') handlers.onRetrievalStart?.(payload as { query: string });
   if (eventName === 'retrieval_done') handlers.onRetrievalDone?.(payload as { citations: RagCitation[] });
   if (eventName === 'debug_log') handlers.onDebugLog?.(payload as { direction: string; title: string; detail: string });

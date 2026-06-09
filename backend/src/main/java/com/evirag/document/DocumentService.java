@@ -65,6 +65,7 @@ public class DocumentService {
     @Transactional
     public DocumentResponse upload(Long userId, Long knowledgeBaseId, MultipartFile file) {
         validateFile(file);
+        // 先验证知识库属于当前用户，再保存文件。这样不能把文档偷偷上传到别人的知识库里。
         knowledgeBaseRepository.findByIdAndUserId(knowledgeBaseId, userId)
                 .orElseThrow(KnowledgeBaseNotFoundException::new);
         try {
@@ -84,6 +85,8 @@ public class DocumentService {
                     sha256
             );
             Document saved = documentRepository.save(document);
+            // 上传接口只负责“保存原文件 + 创建 PROCESSING 记录”。
+            // 真正耗时的解析、切片、embedding 和 Chroma 入库在事务提交后异步执行。
             triggerIndexAfterCommit(saved.getId());
             return DocumentResponse.from(saved);
         } catch (DocumentUploadException ex) {
@@ -166,12 +169,14 @@ public class DocumentService {
     private Path storagePath(Long userId, Long knowledgeBaseId, String extension) {
         Path uploadRoot = Path.of(appProperties.getUploadDir()).toAbsolutePath().normalize();
         String storedName = UUID.randomUUID().toString().replace("-", "") + "." + extension;
+        // 磁盘路径按 user/kb 分目录，便于排查文件归属；真实文件名用 UUID，避免重名覆盖。
         return uploadRoot.resolve("user-" + userId).resolve("kb-" + knowledgeBaseId).resolve(storedName).normalize();
     }
 
     private String safeOriginalFilename(String originalFilename) {
         String cleaned = StringUtils.cleanPath(originalFilename == null ? "" : originalFilename);
         String fileName = Path.of(cleaned).getFileName().toString();
+        // 拒绝包含 .. 的文件名，防止上传文件逃出 uploads 目录。
         if (fileName.isBlank() || fileName.contains("..")) {
             throw new DocumentUploadException("原始文件名无效");
         }

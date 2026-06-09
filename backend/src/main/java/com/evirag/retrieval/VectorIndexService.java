@@ -85,6 +85,8 @@ public class VectorIndexService {
 
         Document document = optionalDocument.get();
         try {
+            // 索引流程会同时写 MySQL 和 Chroma。MySQL 保存“文档/切片元数据”，
+            // Chroma 保存“向量和可检索文本”。两边都成功后，文档状态才会变成 READY。
             KnowledgeBase knowledgeBase = knowledgeBaseRepository
                     .findByIdAndUserId(document.getKnowledgeBaseId(), document.getUserId())
                     .orElseThrow(() -> new IllegalStateException("知识库不存在或文档归属不匹配"));
@@ -102,6 +104,7 @@ public class VectorIndexService {
                 return;
             }
 
+            // embedding 服务负责把每个文本切片变成一组数字向量。后续相似度检索比较的就是这些数字向量。
             List<List<Double>> embeddings = embeddingClient.embed(textChunks.stream().map(TextChunk::text).toList());
             if (embeddings.size() != textChunks.size()) {
                 fail(document, "EMBEDDING", "Embedding 返回数量不匹配",
@@ -109,6 +112,8 @@ public class VectorIndexService {
                 return;
             }
 
+            // 先确保 collection 存在，再删除同一文档的旧向量，最后写入新向量。
+            // 这样重复上传或重新索引时，不会留下过期切片。
             chromaClient.ensureCollection(knowledgeBase.getChromaCollection());
             chromaClient.deleteByDocumentId(knowledgeBase.getChromaCollection(), document.getId());
             List<DocumentChunk> savedChunks = replaceChunks(document, textChunks);
@@ -129,6 +134,8 @@ public class VectorIndexService {
     }
 
     private ParsedDocument parse(Document document) {
+        // documentParsers 是 Spring 注入进来的解析器列表。
+        // 每个解析器自己判断是否支持当前文件名，例如 PDF 解析器只处理 .pdf。
         DocumentParser parser = documentParsers.stream()
                 .filter(candidate -> candidate.supports(document.getOriginalFilename()))
                 .findFirst()
@@ -182,6 +189,7 @@ public class VectorIndexService {
 
     private String metadataJson(Document document, TextChunk textChunk, Long chunkId) throws Exception {
         Map<String, Object> metadata = new LinkedHashMap<>();
+        // metadata 会同时保存进 MySQL 和 Chroma，检索命中后就能知道片段属于哪个用户、知识库、文档和切片。
         metadata.put("user_id", document.getUserId());
         metadata.put("knowledge_base_id", document.getKnowledgeBaseId());
         metadata.put("document_id", document.getId());

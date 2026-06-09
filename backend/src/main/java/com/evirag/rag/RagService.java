@@ -47,6 +47,9 @@ public class RagService {
     }
 
     public void streamAnswer(RagRequest request, RagStreamListener listener) {
+        // RAG 的顺序可以理解为：
+        // 1. 根据历史消息改写用户问题；2. 把问题转成向量；3. 去 Chroma 找相似切片；
+        // 4. 把切片拼进 prompt；5. 调用 LLM 流式生成答案。
         RewriteResult rewrite = queryRewriteService.rewrite(request.question(), request.historyMessages());
         listener.onRetrievalStart(rewrite.rewrittenQuery());
         List<RagCitation> citations = retrieve(request, rewrite.rewrittenQuery());
@@ -72,6 +75,7 @@ public class RagService {
     private List<RagCitation> retrieve(RagRequest request, String rewrittenQuery) {
         List<Double> embedding = embeddingClient.embedOne(rewrittenQuery);
         Map<String, Object> where = new LinkedHashMap<>();
+        // where 条件限制只能检索当前用户、当前知识库的切片，避免不同用户的数据混在一起。
         where.put("$and", List.of(
                 Map.of("user_id", request.userId()),
                 Map.of("knowledge_base_id", request.knowledgeBaseId())
@@ -100,6 +104,7 @@ public class RagService {
 
     private List<LlmMessage> promptMessages(RagRequest request, List<RagCitation> citations) {
         List<LlmMessage> messages = new ArrayList<>();
+        // system 消息是“规则说明”，用来约束模型不要乱编；user 消息里放用户问题和检索到的引用片段。
         messages.add(LlmMessage.system("""
                 你是 EviRAG 的知识库问答助手。只能基于给定引用片段谨慎回答。
                 如果引用片段无法支撑结论，请明确说明“当前知识库中没有找到强相关依据”。
