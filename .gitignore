@@ -1,4 +1,5 @@
 .worktrees/
+.superpowers/
 
 # Maven 构建产物
 backend/target/

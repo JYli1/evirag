@@ -10,9 +10,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
  */
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    // Spring Data JPA 会根据方法名自动生成 SQL：where email = ?
     Optional<User> findByEmail(String email);
 
+    // 注册前检查邮箱是否已被使用。
     boolean existsByEmail(String email);
 
+    // 管理员首页按 ACTIVE/DISABLED 统计用户数量。
     long countByStatus(String status);
 }

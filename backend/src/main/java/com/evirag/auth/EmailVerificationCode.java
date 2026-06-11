@@ -23,34 +23,47 @@ public class EmailVerificationCode {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 验证码所属邮箱。
     @Column(nullable = false, length = 255)
     private String email;
 
+    // 只保存验证码哈希，不保存邮件中发送出去的 6 位明文。
     @Column(name = "code_hash", nullable = false, length = 255)
     private String codeHash;
 
+    // REGISTER 和 PASSWORD_RESET 分开，避免跨用途复用验证码。
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private VerificationPurpose purpose;
 
+    // 验证码成功使用后置为 true，防止重复提交。
     @Column(nullable = false)
     private boolean consumed;
 
+    // 过期时间，验证时以服务器时间判断。
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    // 发送请求来源 IP，主要用于审计和后续限流。
     @Column(name = "sent_ip", length = 64)
     private String sentIp;
 
+    // 当前记录的发送次数，预留给更细的限流策略。
     @Column(name = "send_count", nullable = false)
     private int sendCount;
 
+    // 验证失败次数，超过阈值后服务层会拒绝继续尝试。
     @Column(name = "failure_count", nullable = false)
     private int failureCount;
 
+    /**
+     * 创建新的验证码记录。
+     *
+     * <p>明文验证码由服务层生成并发送邮件，这里只保存哈希和用途。</p>
+     */
     public static EmailVerificationCode create(
             String email,
             VerificationPurpose purpose,
@@ -72,6 +85,9 @@ public class EmailVerificationCode {
         return code;
     }
 
+    /**
+     * 判断验证码是否过期。
+     */
     public boolean isExpired(Instant now) {
         return !expiresAt.isAfter(now);
     }

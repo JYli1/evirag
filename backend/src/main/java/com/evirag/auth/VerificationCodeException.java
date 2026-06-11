@@ -7,6 +7,9 @@ package com.evirag.auth;
  */
 public class VerificationCodeException extends RuntimeException {
 
+    /**
+     * 验证码错误会按 400 返回给前端，用于弹窗或表单错误提示。
+     */
     public VerificationCodeException(String message) {
         super(message);
     }

@@ -117,6 +117,9 @@ class EmailVerificationServiceTest {
         verify(repository).save(existing);
     }
 
+    /**
+     * 测试替身：不真正发送邮件，只记录最近一次发送的邮箱、用途和验证码。
+     */
     private static class RecordingEmailSender implements VerificationEmailSender {
 
         private String sentCode;

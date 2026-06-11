@@ -6,7 +6,7 @@
         <input
           class="sr-only"
           type="file"
-          accept=".pdf,.txt,.docx,.md"
+          accept=".pdf,.txt,.doc,.docx,.md"
           :disabled="!knowledgeBaseId || uploading"
           @change="handleFileChange"
         />
@@ -53,59 +53,102 @@
           {{ doc.errorStage || '处理失败' }}：{{ doc.rawErrorSummary || doc.errorMessage || '未返回原始错误' }}
         </p>
 
-        <div v-if="shouldShowPreview(doc)" class="chunk-preview-modal" @click.self="hideChunks">
-          <div class="preview-content">
-            <div class="preview-head">
-              <div>
-                <span>切片预览</span>
-                <small>{{ previewHint(doc) }}</small>
-              </div>
-              <button type="button" class="close-button" @click="hideChunks" title="关闭预览">×</button>
-            </div>
-            <div class="preview-body">
-              <p v-if="loadingChunkIds[doc.id]" class="preview-note">正在读取切片...</p>
-              <p v-else-if="chunkErrors[doc.id]" class="preview-note error">{{ chunkErrors[doc.id] }}</p>
-              <p v-else-if="!chunksFor(doc.id).length" class="preview-note">暂无可展示切片。</p>
-              <div v-else class="chunk-list">
-                <article v-for="chunk in chunksFor(doc.id).slice(0, 10)" :key="chunk.id" class="chunk-card">
-                  <span>#{{ chunk.chunkIndex + 1 }} {{ chunk.sourceLocation || '' }}</span>
-                  <p>{{ chunk.content }}</p>
-                </article>
-                <small v-if="chunksFor(doc.id).length > 10" class="more-note">
-                  还有 {{ chunksFor(doc.id).length - 10 }} 个切片未展示
-                </small>
-              </div>
-            </div>
-          </div>
-        </div>
       </article>
       <p v-if="!documents.length" class="empty">还没有上传文档。</p>
     </div>
+
+    <Teleport to="body">
+      <div v-if="activeDocument" class="chunk-preview-modal" @click.self="hideChunks">
+        <div class="preview-content" :class="{ 'is-detail': selectedChunk }">
+          <div class="preview-head">
+            <div>
+              <span>{{ selectedChunk ? '完整片段' : '切片预览' }}</span>
+              <small>{{ selectedChunk ? chunkPosition(selectedChunk) : previewHint(activeDocument) }}</small>
+            </div>
+            <button type="button" class="close-button" @click="hideChunks" title="关闭预览">×</button>
+          </div>
+          <div class="preview-body">
+            <p v-if="loadingChunkIds[activeDocument.id]" class="preview-note">正在读取切片...</p>
+            <p v-else-if="chunkErrors[activeDocument.id]" class="preview-note error">
+              {{ chunkErrors[activeDocument.id] }}
+            </p>
+            <p v-else-if="!chunksFor(activeDocument.id).length" class="preview-note">暂无可展示切片。</p>
+            <div v-else-if="selectedChunk" class="chunk-detail">
+              <button type="button" class="back-button" @click="selectedChunk = null">返回切片列表</button>
+              <article class="chunk-detail-card">
+                <header>
+                  <span>#{{ selectedChunk.chunkIndex + 1 }}</span>
+                  <small>{{ selectedChunk.sourceLocation || '未标注位置' }}</small>
+                </header>
+                <p>{{ selectedChunk.content }}</p>
+              </article>
+            </div>
+            <div v-else class="chunk-list">
+              <button
+                v-for="chunk in chunksFor(activeDocument.id)"
+                :key="chunk.id"
+                class="chunk-card"
+                type="button"
+                @click="openChunkDetail(chunk)"
+              >
+                <span>#{{ chunk.chunkIndex + 1 }} {{ chunk.sourceLocation || '' }}</span>
+                <p>{{ firstSentence(chunk.content) }}</p>
+                <small>查看完整片段</small>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 import { apiErrorMessage } from '@/api/http';
 import { listDocumentChunks, type DocumentChunk, type KnowledgeDocument } from '@/api/document';
 
-defineProps<{
+const props = defineProps<{
+  // 当前选中的知识库，为空时不允许上传。
   knowledgeBaseId: number | null;
+  // 当前知识库下的文档列表。
   documents: KnowledgeDocument[];
+  // 是否正在上传文件。
   uploading: boolean;
+  // 正在删除的文档 ID，用于禁用按钮和显示状态。
   deletingDocumentId: number | null;
 }>();
 
 const emit = defineEmits<{
+  // 父组件负责真正调用 uploadDocument API。
   upload: [file: File];
+  // 父组件负责删除并刷新列表。
   delete: [document: KnowledgeDocument];
 }>();
 
+// 当前打开切片预览的文档 ID。
 const hoveredDocumentId = ref<number | null>(null);
+// 切片缓存，避免重复打开同一文档预览时反复请求后端。
 const chunkCache = ref<Record<number, DocumentChunk[]>>({});
+// 每个文档的切片加载状态。
 const loadingChunkIds = ref<Record<number, boolean>>({});
+// 每个文档的切片加载错误。
 const chunkErrors = ref<Record<number, string>>({});
+// 当前在弹窗中查看完整内容的切片。
+const selectedChunk = ref<DocumentChunk | null>(null);
+
+const activeDocument = computed(() => {
+  const documentId = hoveredDocumentId.value;
+  if (documentId == null) {
+    return null;
+  }
+  const document = props.documents.find((candidate) => candidate.id === documentId);
+  if (!document || document.parseStatus !== 'READY' || document.chunkCount <= 0) {
+    return null;
+  }
+  return document;
+});
 
 function handleFileChange(event: Event) {
   const input = event.target as HTMLInputElement;
@@ -113,20 +156,25 @@ function handleFileChange(event: Event) {
   if (file) {
     emit('upload', file);
   }
+  // 清空 input，确保用户再次选择同一个文件也能触发 change。
   input.value = '';
 }
 
 async function showChunks(document: KnowledgeDocument) {
   hoveredDocumentId.value = document.id;
+  selectedChunk.value = null;
   if (document.parseStatus !== 'READY' || document.chunkCount <= 0) {
+    // 未完成索引或没有切片时不请求后端。
     return;
   }
   if (loadingChunkIds.value[document.id]) {
     return;
   }
   if (chunkCache.value[document.id]) {
+    // 已有缓存则直接显示。
     return;
   }
+  // 使用对象替换而不是原地赋值，确保 Vue 能稳定触发响应式更新。
   loadingChunkIds.value = { ...loadingChunkIds.value, [document.id]: true };
   chunkErrors.value = { ...chunkErrors.value, [document.id]: '' };
   try {
@@ -141,20 +189,19 @@ async function showChunks(document: KnowledgeDocument) {
 
 function hideChunks() {
   hoveredDocumentId.value = null;
+  selectedChunk.value = null;
+}
+
+function openChunkDetail(chunk: DocumentChunk) {
+  selectedChunk.value = chunk;
 }
 
 function confirmDelete(document: KnowledgeDocument) {
+  // 删除是不可逆操作，前端先做一次确认。
   const confirmed = window.confirm(`确定删除文档「${document.originalFilename}」吗？`);
   if (confirmed) {
     emit('delete', document);
   }
-}
-
-function shouldShowPreview(document: KnowledgeDocument) {
-  if (hoveredDocumentId.value !== document.id) {
-    return false;
-  }
-  return document.parseStatus === 'READY' && document.chunkCount > 0;
 }
 
 function chunksFor(documentId: number) {
@@ -162,10 +209,11 @@ function chunksFor(documentId: number) {
 }
 
 function previewHint(document: KnowledgeDocument) {
-  if (document.chunkCount <= 10) {
-    return `${document.chunkCount} 个切片`;
-  }
-  return `前 10 / 共 ${document.chunkCount} 个`;
+  return `${document.chunkCount} 个切片`;
+}
+
+function chunkPosition(chunk: DocumentChunk) {
+  return chunk.sourceLocation || `#${chunk.chunkIndex + 1}`;
 }
 
 function statusText(status: string) {
@@ -185,11 +233,24 @@ function displayFilename(filename: string) {
   if (filename.length <= 18) {
     return filename;
   }
+  // 卡片上展示短文件名，完整文件名放在 title 中，防止长文件名撑破布局。
   const dotIndex = filename.lastIndexOf('.');
   const extension = dotIndex > 0 ? filename.slice(dotIndex) : '';
   const base = dotIndex > 0 ? filename.slice(0, dotIndex) : filename;
   const suffix = extension.length <= 8 ? extension : '';
   return `${base.slice(0, 14)}...${suffix}`;
+}
+
+function firstSentence(content: string) {
+  const normalized = content.replace(/\s+/g, ' ').trim();
+  if (!normalized) {
+    return '空片段';
+  }
+  const sentence = normalized.match(/^.*?[。！？!?\.]/)?.[0] || normalized;
+  if (sentence.length <= 120) {
+    return sentence;
+  }
+  return `${sentence.slice(0, 120)}...`;
 }
 </script>
 
@@ -200,7 +261,9 @@ function displayFilename(filename: string) {
   padding: 14px;
   border: 1px solid var(--color-line);
   border-radius: var(--radius-xl);
-  background: var(--color-panel-muted);
+  background:
+    linear-gradient(90deg, rgba(18, 149, 190, 0.06), transparent),
+    rgba(255, 255, 255, 0.58);
   box-shadow: var(--shadow-sm);
 }
 
@@ -221,7 +284,7 @@ header span {
 
 .upload-button {
   padding: 8px 14px;
-  border: 1px solid var(--color-brand);
+  border: 1px solid var(--color-strong-line);
   border-radius: 999px;
   background: var(--color-brand-dark);
   color: #ffffff;
@@ -254,14 +317,14 @@ header span {
   padding: 12px;
   border: 1px solid var(--color-line);
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.68);
   box-shadow: var(--shadow-sm);
   transition: all var(--transition-base);
 }
 
 .document-item:hover {
   transform: translateY(-2px);
-  border-color: var(--color-brand-light);
+  border-color: var(--color-strong-line);
   box-shadow: var(--shadow-md);
 }
 
@@ -313,7 +376,7 @@ header span {
 .status {
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(52, 107, 132, 0.1);
+  background: rgba(18, 149, 190, 0.1);
   color: var(--color-info);
   font-size: 11px;
   font-weight: 700;
@@ -329,16 +392,6 @@ header span {
 .status.processing {
   background: rgba(163, 106, 31, 0.12);
   color: var(--color-accent);
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
 }
 
 .status.failed {
@@ -350,7 +403,7 @@ header span {
   padding: 4px 9px;
   border: 1px solid rgba(37, 90, 143, 0.2);
   border-radius: 8px;
-  background: #eef5fb;
+  background: #e8f8fc;
   color: var(--color-brand-dark);
   cursor: pointer;
   font-size: 11px;
@@ -361,7 +414,7 @@ header span {
 
 .preview-button:hover {
   border-color: var(--color-brand);
-  background: #e1edf6;
+  background: #dff5fa;
   box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
 }
@@ -397,8 +450,7 @@ header span {
 
 .raw-error,
 .empty,
-.preview-note,
-.more-note {
+.preview-note {
   margin: 0;
   color: var(--color-muted);
   font-size: 12px;
@@ -417,26 +469,15 @@ header span {
 
 .chunk-preview-modal {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1000;
+  inset: 0;
+  z-index: 3000;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.6);
+  padding: 24px;
+  background: rgba(7, 26, 42, 0.56);
   backdrop-filter: blur(8px);
-  animation: fadeIn 0.2s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 .preview-content {
@@ -444,22 +485,14 @@ header span {
   max-height: 85vh;
   display: grid;
   grid-template-rows: auto 1fr;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.92);
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-lg), 0 0 0 1px rgba(23, 32, 51, 0.05);
   overflow: hidden;
-  animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-30px) scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+.preview-content.is-detail {
+  width: min(92vw, 900px);
 }
 
 .preview-body {
@@ -474,7 +507,9 @@ header span {
   gap: 16px;
   padding: 20px 24px;
   border-bottom: 1px solid var(--color-line);
-  background: var(--color-panel-muted);
+  background:
+    linear-gradient(90deg, rgba(18, 149, 190, 0.08), transparent),
+    rgba(255, 255, 255, 0.86);
 }
 
 .preview-head > div {
@@ -493,7 +528,7 @@ header span {
 
 .preview-head small {
   padding: 4px 10px;
-  background: #eef5fb;
+  background: #e8f8fc;
   color: var(--color-brand-dark);
   font-size: 11px;
   font-weight: 700;
@@ -543,22 +578,26 @@ header span {
 
 .chunk-list {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .chunk-card {
+  width: 100%;
   display: grid;
-  gap: 6px;
+  gap: 7px;
   padding: 12px 14px;
   border: 1px solid var(--color-line);
   border-radius: var(--radius-lg);
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.78);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
   box-shadow: var(--shadow-sm);
   transition: all var(--transition-fast);
 }
 
 .chunk-card:hover {
-  border-color: var(--color-brand-light);
+  border-color: var(--color-strong-line);
   box-shadow: var(--shadow-md);
   transform: translateX(4px);
 }
@@ -572,96 +611,82 @@ header span {
 }
 
 .chunk-card p {
-  display: -webkit-box;
   margin: 0;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 5;
   color: var(--color-ink);
   font-size: 13px;
-  line-height: 1.7;
+  line-height: 1.62;
   overflow-wrap: anywhere;
 }
 
-.more-note {
-  padding: 12px;
-  text-align: center;
-  color: var(--color-muted);
-  background: #eef5fb;
-  border-radius: var(--radius-md);
-  font-weight: 600;
+.chunk-card small {
+  color: var(--color-brand-dark);
+  font-size: 11px;
+  font-weight: 800;
 }
 
-.chunk-preview {
+.chunk-detail {
   display: grid;
-  gap: 9px;
-  padding: 10px;
-  border: 1px solid rgba(37, 99, 235, 0.16);
-  border-radius: 12px;
-  background: #ffffff;
-  box-shadow: inset 3px 0 0 rgba(37, 99, 235, 0.3);
+  gap: 12px;
 }
 
-.preview-head {
+.back-button {
+  justify-self: start;
+  padding: 7px 11px;
+  border: 1px solid rgba(37, 90, 143, 0.2);
+  border-radius: var(--radius-md);
+  background: #e8f8fc;
+  color: var(--color-brand-dark);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.back-button:hover {
+  border-color: var(--color-brand);
+  background: #dff5fa;
+}
+
+.chunk-detail-card {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  max-height: min(64vh, 580px);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: #ffffff;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.chunk-detail-card header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 16px 18px;
+  gap: 12px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--color-line);
   background: var(--color-panel-muted);
 }
 
-.preview-head > div {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.preview-head span {
+.chunk-detail-card header span {
   color: var(--color-brand-dark);
   font-size: 12px;
   font-weight: 900;
 }
 
-.preview-head small {
+.chunk-detail-card header small {
   color: var(--color-muted);
   font-size: 11px;
+  font-weight: 800;
 }
 
-.preview-note.error {
-  color: var(--color-danger);
-}
-
-.chunk-list {
-  display: grid;
-  gap: 8px;
-}
-
-.chunk-card {
-  display: grid;
-  gap: 4px;
-  padding: 8px;
-  border: 1px solid var(--color-line);
-  border-radius: 10px;
-  background: var(--color-panel-muted);
-}
-
-.chunk-card span {
-  color: var(--color-muted);
-  font-size: 11px;
-  font-weight: 900;
-}
-
-.chunk-card p {
-  display: -webkit-box;
+.chunk-detail-card p {
   margin: 0;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
+  padding: 16px;
+  overflow-y: auto;
   color: var(--color-ink);
-  font-size: 12px;
-  line-height: 1.58;
+  font-size: 13px;
+  line-height: 1.75;
   overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 </style>

@@ -25,6 +25,7 @@ public class KnowledgeBaseService {
 
     @Transactional
     public KnowledgeBaseResponse create(Long userId, KnowledgeBaseRequest request) {
+        // collection 名中带 userId 和随机 UUID，既方便排查归属，又避免不同知识库重名。
         String collection = appProperties.getChroma().getCollectionPrefix()
                 + userId
                 + "_"
@@ -35,6 +36,7 @@ public class KnowledgeBaseService {
 
     @Transactional(readOnly = true)
     public KnowledgeBaseResponse getById(Long userId, Long knowledgeBaseId) {
+        // 用 findByIdAndUserId 保证普通用户只能读取自己的知识库。
         return knowledgeBaseRepository.findByIdAndUserId(knowledgeBaseId, userId)
                 .map(KnowledgeBaseResponse::from)
                 .orElseThrow(KnowledgeBaseNotFoundException::new);
@@ -42,6 +44,7 @@ public class KnowledgeBaseService {
 
     @Transactional(readOnly = true)
     public List<KnowledgeBaseResponse> listByCurrentUser(Long userId) {
+        // 列表接口只返回当前用户数据，不提供全局列表。
         return knowledgeBaseRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(KnowledgeBaseResponse::from)
                 .toList();

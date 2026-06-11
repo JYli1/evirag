@@ -97,7 +97,7 @@ class DocumentServiceTest {
 
         assertThatThrownBy(() -> documentService.upload(1L, 1L, file))
                 .isInstanceOf(DocumentUploadException.class)
-                .hasMessageContaining("仅支持 PDF、TXT、DOCX、MD 文件");
+                .hasMessageContaining("仅支持 PDF、TXT、DOC、DOCX、MD 文件");
     }
 
     @Test

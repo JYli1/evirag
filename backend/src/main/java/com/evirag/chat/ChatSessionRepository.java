@@ -11,9 +11,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
  */
 public interface ChatSessionRepository extends JpaRepository<ChatSession, Long> {
 
+    // 查询单个会话时带 userId，避免用户猜 sessionId 读到别人的会话。
     Optional<ChatSession> findByIdAndUserId(Long id, Long userId);
 
+    // 知识库会话列表，最近更新的排在前面。
     List<ChatSession> findByKnowledgeBaseIdAndUserIdOrderByUpdatedAtDesc(Long knowledgeBaseId, Long userId);
 
+    // 自由会话列表，knowledgeBaseId 为空。
     List<ChatSession> findByKnowledgeBaseIdIsNullAndUserIdOrderByUpdatedAtDesc(Long userId);
 }

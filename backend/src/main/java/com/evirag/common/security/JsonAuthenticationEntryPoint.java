@@ -39,6 +39,7 @@ public class JsonAuthenticationEntryPoint implements AuthenticationEntryPoint {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setCharacterEncoding("UTF-8");
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        // 统一 JSON 结构能让前端在 token 过期时稳定跳转登录页，而不是解析 HTML 错误页。
         objectMapper.writeValue(response.getOutputStream(), ApiResponse.error(ApiErrorCode.UNAUTHORIZED));
     }
 }

@@ -10,5 +10,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
  */
 public interface AdminAuditLogRepository extends JpaRepository<AdminAuditLog, Long> {
 
+    // 管理员面板只展示最近 50 条，避免一次性加载全部日志。
     List<AdminAuditLog> findTop50ByOrderByCreatedAtDesc();
 }

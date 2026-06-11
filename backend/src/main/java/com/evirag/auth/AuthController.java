@@ -30,28 +30,45 @@ public class AuthController {
         this.emailVerificationService = emailVerificationService;
     }
 
+    /**
+     * 注册前发送邮箱验证码。
+     *
+     * <p>验证码用途固定为 REGISTER，后端不会相信前端传入的用途字段。</p>
+     */
     @PostMapping("/register/send-code")
     public ApiResponse<Void> sendRegisterCode(@Valid @RequestBody SendCodeRequest request, HttpServletRequest servletRequest) {
         emailVerificationService.sendCode(request.email(), VerificationPurpose.REGISTER, clientIp(servletRequest));
         return ApiResponse.success();
     }
 
+    /**
+     * 注册账号并直接签发 JWT。
+     */
     @PostMapping("/register")
     public ApiResponse<AuthTokenResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ApiResponse.success(authService.register(request));
     }
 
+    /**
+     * 邮箱密码登录。
+     */
     @PostMapping("/login")
     public ApiResponse<AuthTokenResponse> login(@Valid @RequestBody LoginRequest request) {
         return ApiResponse.success(authService.login(request));
     }
 
+    /**
+     * 找回密码前发送验证码。
+     */
     @PostMapping("/password/send-code")
     public ApiResponse<Void> sendPasswordResetCode(@Valid @RequestBody SendCodeRequest request, HttpServletRequest servletRequest) {
         emailVerificationService.sendCode(request.email(), VerificationPurpose.PASSWORD_RESET, clientIp(servletRequest));
         return ApiResponse.success();
     }
 
+    /**
+     * 校验验证码后修改密码。
+     */
     @PostMapping("/password/reset")
     public ApiResponse<Void> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
         authService.resetPassword(request);

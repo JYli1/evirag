@@ -124,6 +124,9 @@ class VectorIndexServiceTest {
         return document;
     }
 
+    /**
+     * 测试解析器：绕过真实文件解析，把测试中准备好的 ParsedDocument 直接交给索引流程。
+     */
     private static class TestParser implements DocumentParser {
 
         @Override

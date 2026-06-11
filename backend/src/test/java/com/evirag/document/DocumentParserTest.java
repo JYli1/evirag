@@ -68,6 +68,14 @@ class DocumentParserTest {
     }
 
     @Test
+    void wordParserAcceptsDocAndDocxNames() {
+        DocxDocumentParser parser = new DocxDocumentParser();
+
+        assertThat(parser.supports("legacy.doc")).isTrue();
+        assertThat(parser.supports("modern.docx")).isTrue();
+    }
+
+    @Test
     void parsesPdfPagesWithPdfBox() throws Exception {
         Path sample = tempDir.resolve("sample.pdf");
         writePdf(sample, "PDF sample title", "first page evidence text");

@@ -23,40 +23,51 @@ public class Document {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 所属知识库，删除知识库或查询知识库文档时使用。
     @Column(name = "knowledge_base_id", nullable = false)
     private Long knowledgeBaseId;
 
+    // 上传用户，用于普通用户数据隔离和管理员统计。
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    // 用户上传时的原始文件名，展示时用它而不是 storedPath。
     @Column(name = "original_filename", nullable = false, length = 255)
     private String originalFilename;
 
+    // 服务端本地保存路径，避免直接信任原文件名做路径。
     @Column(name = "stored_path", nullable = false, length = 512)
     private String storedPath;
 
+    // 浏览器上报的 MIME 类型，只作为辅助信息，真正解析仍看扩展名和解析器。
     @Column(name = "content_type", length = 128)
     private String contentType;
 
     @Column(name = "file_size_bytes", nullable = false)
     private Long fileSizeBytes;
 
+    // 文件 SHA-256，后续可用于重复文件检测或审计。
     @Column(nullable = false, length = 64)
     private String sha256;
 
+    // 使用字符串保存枚举，数据库值更直观，也避免 enum 顺序变动造成问题。
     @Enumerated(EnumType.STRING)
     @Column(name = "parse_status", nullable = false, length = 32)
     private DocumentStatus parseStatus;
 
+    // 给用户看的错误文案。
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
+    // 失败阶段，例如 PARSE、CHUNK、EMBEDDING、CHROMA。
     @Column(name = "error_stage", length = 64)
     private String errorStage;
 
+    // 底层错误摘要，经过脱敏后保存，方便调试配置或第三方接口问题。
     @Column(name = "raw_error_summary", columnDefinition = "TEXT")
     private String rawErrorSummary;
 
+    // READY 后的切片数量；PROCESSING/FAILED 时通常为 0。
     @Column(name = "chunk_count", nullable = false)
     private Integer chunkCount;
 
@@ -66,6 +77,11 @@ public class Document {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /**
+     * 上传成功但尚未索引完成时创建 Document。
+     *
+     * <p>先保存 PROCESSING 状态，前端才能立刻看到“处理中”，后续异步任务再更新为 READY 或 FAILED。</p>
+     */
     public static Document processing(
             Long knowledgeBaseId,
             Long userId,

@@ -22,7 +22,14 @@ class AppPropertiesTest {
                     "evirag.chunk.overlap-chars=150",
                     "evirag.rag.top-k=9",
                     "evirag.rag.low-score-threshold=0.42",
-                    "evirag.rag.history-turns=6"
+                    "evirag.rag.history-turns=6",
+                    "evirag.web-search.enabled=true",
+                    "evirag.web-search.base-url=https://api.tavily.com",
+                    "evirag.web-search.curl-executable=curl.exe",
+                    "evirag.web-search.search-depth=advanced",
+                    "evirag.web-search.extract-depth=advanced",
+                    "evirag.web-search.max-results=7",
+                    "evirag.web-search.timeout-seconds=30"
             );
 
     /**
@@ -39,6 +46,13 @@ class AppPropertiesTest {
             assertThat(properties.getRag().getTopK()).isEqualTo(9);
             assertThat(properties.getRag().getLowScoreThreshold()).isEqualTo(0.42);
             assertThat(properties.getRag().getHistoryTurns()).isEqualTo(6);
+            assertThat(properties.getWebSearch().isEnabled()).isTrue();
+            assertThat(properties.getWebSearch().getBaseUrl()).isEqualTo("https://api.tavily.com");
+            assertThat(properties.getWebSearch().getCurlExecutable()).isEqualTo("curl.exe");
+            assertThat(properties.getWebSearch().getSearchDepth()).isEqualTo("advanced");
+            assertThat(properties.getWebSearch().getExtractDepth()).isEqualTo("advanced");
+            assertThat(properties.getWebSearch().getMaxResults()).isEqualTo(7);
+            assertThat(properties.getWebSearch().getTimeoutSeconds()).isEqualTo(30);
         });
     }
 
@@ -99,6 +113,18 @@ class AppPropertiesTest {
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure()).hasStackTraceContaining("timeoutSeconds");
+                });
+    }
+
+    /**
+     * 验证 Tavily 搜索结果数量有上限，避免一次联网搜索把 prompt 撑得过长。
+     */
+    @Test
+    void rejectsOutOfRangeWebSearchMaxResults() {
+        contextRunner.withPropertyValues("evirag.web-search.max-results=11")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasStackTraceContaining("maxResults");
                 });
     }
 
@@ -181,6 +207,9 @@ class AppPropertiesTest {
      * 测试专用配置入口，只启用 AppProperties，避免把数据库、Flyway、Security 等应用组件拉进来。
      */
     @EnableConfigurationProperties(AppProperties.class)
+    /**
+     * 测试专用配置类，只注册 AppProperties，让测试聚焦在配置绑定和校验本身。
+     */
     static class TestConfiguration {
     }
 }

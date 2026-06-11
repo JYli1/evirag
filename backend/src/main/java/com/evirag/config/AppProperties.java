@@ -21,6 +21,8 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties(prefix = "evirag")
 public class AppProperties {
 
+    // 下面这些字段和 application.yml 的 evirag.* 一一对应；Spring 会通过 setter 自动注入配置值。
+
     /**
      * 本地上传文件保存目录；生产环境应配置到持久化磁盘或对象存储挂载目录。
      */
@@ -74,6 +76,12 @@ public class AppProperties {
      */
     @Valid
     private Rag rag = new Rag();
+
+    /**
+     * Tavily 联网搜索配置；仅当用户在前端开启搜索时才会调用。
+     */
+    @Valid
+    private WebSearch webSearch = new WebSearch();
 
     public String getUploadDir() {
         return uploadDir;
@@ -145,6 +153,14 @@ public class AppProperties {
 
     public void setRag(Rag rag) {
         this.rag = rag;
+    }
+
+    public WebSearch getWebSearch() {
+        return webSearch;
+    }
+
+    public void setWebSearch(WebSearch webSearch) {
+        this.webSearch = webSearch;
     }
 
     /**
@@ -393,6 +409,7 @@ public class AppProperties {
          */
         @AssertTrue(message = "切片重叠长度必须小于最大长度")
         public boolean isOverlapSmallerThanMax() {
+            // 例如 max=1200、overlap=120 时，每次窗口向前移动 1080 个字符；如果 overlap>=max 会死循环。
             return overlapChars < maxChars;
         }
     }
@@ -443,6 +460,151 @@ public class AppProperties {
 
         public void setHistoryTurns(int historyTurns) {
             this.historyTurns = historyTurns;
+        }
+    }
+
+    /**
+     * Tavily Search / Extract 配置。
+     */
+    public static class WebSearch {
+
+        /**
+         * 是否允许前端搜索开关触发 Tavily 调用；关闭后用户开启搜索会得到明确错误。
+         */
+        private boolean enabled = true;
+
+        /**
+         * Tavily API 基础地址。
+         */
+        @NotBlank
+        private String baseUrl = "https://api.tavily.com";
+
+        /**
+         * Tavily API Key，通过 backend/.env 的 TAVILY_API_KEY 配置。
+         */
+        private String apiKey = "";
+
+        /**
+         * 系统 curl 命令路径；Windows 默认也可用 curl.exe。
+         */
+        @NotBlank
+        private String curlExecutable = "curl";
+
+        /**
+         * Search 深度，通常为 basic 或 advanced。
+         */
+        @NotBlank
+        private String searchDepth = "basic";
+
+        /**
+         * Extract 深度，通常为 basic 或 advanced。
+         */
+        @NotBlank
+        private String extractDepth = "basic";
+
+        /**
+         * Search 最多返回结果数量。
+         */
+        @Positive
+        @Max(10)
+        private int maxResults = 5;
+
+        /**
+         * curl 单次请求超时时间，单位为秒。
+         */
+        @Positive
+        private int timeoutSeconds = 25;
+
+        /**
+         * 每条网页资料进入 prompt 前的最大字符数。
+         */
+        @Positive
+        private int perSourceMaxChars = 1200;
+
+        /**
+         * 联网资料整体进入 prompt 的最大字符数。
+         */
+        @Positive
+        private int contextMaxChars = 6000;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
+        public String getApiKey() {
+            return apiKey;
+        }
+
+        public void setApiKey(String apiKey) {
+            this.apiKey = apiKey;
+        }
+
+        public String getCurlExecutable() {
+            return curlExecutable;
+        }
+
+        public void setCurlExecutable(String curlExecutable) {
+            this.curlExecutable = curlExecutable;
+        }
+
+        public String getSearchDepth() {
+            return searchDepth;
+        }
+
+        public void setSearchDepth(String searchDepth) {
+            this.searchDepth = searchDepth;
+        }
+
+        public String getExtractDepth() {
+            return extractDepth;
+        }
+
+        public void setExtractDepth(String extractDepth) {
+            this.extractDepth = extractDepth;
+        }
+
+        public int getMaxResults() {
+            return maxResults;
+        }
+
+        public void setMaxResults(int maxResults) {
+            this.maxResults = maxResults;
+        }
+
+        public int getTimeoutSeconds() {
+            return timeoutSeconds;
+        }
+
+        public void setTimeoutSeconds(int timeoutSeconds) {
+            this.timeoutSeconds = timeoutSeconds;
+        }
+
+        public int getPerSourceMaxChars() {
+            return perSourceMaxChars;
+        }
+
+        public void setPerSourceMaxChars(int perSourceMaxChars) {
+            this.perSourceMaxChars = perSourceMaxChars;
+        }
+
+        public int getContextMaxChars() {
+            return contextMaxChars;
+        }
+
+        public void setContextMaxChars(int contextMaxChars) {
+            this.contextMaxChars = contextMaxChars;
         }
     }
 }

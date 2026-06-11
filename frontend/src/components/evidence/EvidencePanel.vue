@@ -33,7 +33,9 @@
 import type { RagCitation } from '@/api/chat';
 
 defineProps<{
+  // 当前回答召回的 Top-K 证据片段。
   citations: RagCitation[];
+  // 改写后的检索问题。
   query: string;
 }>();
 </script>
@@ -45,12 +47,12 @@ defineProps<{
   grid-auto-rows: max-content;
   gap: 16px;
   padding: 20px;
-  border: 1px solid rgba(216, 224, 235, 0.82);
+  border: 1px solid var(--color-line);
   border-radius: var(--radius-xl);
-  background: rgba(255, 255, 255, 0.88);
+  background: var(--color-crystal);
   overflow-y: auto;
   box-shadow: var(--shadow-card);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(20px);
 }
 
 .evidence-head,
@@ -80,7 +82,7 @@ defineProps<{
   padding: 6px 12px;
   border: 1px solid var(--color-line);
   border-radius: 999px;
-  background: var(--color-panel-muted);
+  background: rgba(255, 255, 255, 0.68);
   color: var(--color-brand-dark);
   font-size: 11px;
   font-weight: 800;
@@ -90,14 +92,14 @@ defineProps<{
 .citation {
   border: 1px solid var(--color-line);
   border-radius: var(--radius-xl);
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.72);
   box-shadow: var(--shadow-sm);
 }
 
 .query-box {
   padding: 14px 16px;
   border-left: 4px solid var(--color-brand);
-  background: #eef5fb;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.84), rgba(223, 245, 250, 0.76));
 }
 
 .query-box span {
@@ -120,7 +122,7 @@ defineProps<{
 
 .citation:hover {
   transform: translateY(-2px);
-  border-color: rgba(37, 90, 143, 0.24);
+  border-color: var(--color-strong-line);
   box-shadow: var(--shadow-card);
 }
 
@@ -168,7 +170,7 @@ defineProps<{
   font-size: 13px;
   padding: 12px;
   border-radius: var(--radius-md);
-  background: var(--color-panel-muted);
+  background: rgba(255, 255, 255, 0.62);
   border: 1px solid var(--color-line);
 }
 
@@ -179,7 +181,7 @@ defineProps<{
   font-size: 13px;
   line-height: 1.6;
   text-align: center;
-  background: var(--color-panel-muted);
+  background: rgba(255, 255, 255, 0.58);
   border-radius: var(--radius-lg);
   border: 1px dashed var(--color-line);
 }

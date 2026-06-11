@@ -105,6 +105,11 @@ interface ProcessLogItem {
   detail: string;
 }
 
+interface SendQuestionPayload {
+  content: string;
+  webSearchEnabled: boolean;
+}
+
 const activeKnowledgeBase = computed(() =>
   knowledgeBases.value.find((item) => item.id === activeKnowledgeBaseId.value),
 );
@@ -356,7 +361,8 @@ function notifyNewFailedDocuments(previousDocuments: KnowledgeDocument[], nextDo
   window.alert(`文档处理失败：${failedDocument.originalFilename}\n${detail}`);
 }
 
-async function sendQuestion(content: string) {
+async function sendQuestion(payload: SendQuestionPayload) {
+  const { content, webSearchEnabled } = payload;
   // 一次发送会先在前端插入用户消息和一个 pending 的助手消息。
   // 后端通过 SSE 一段段返回答案，前端再按 id 更新这条助手消息。
   sending.value = true;
@@ -365,6 +371,9 @@ async function sendQuestion(content: string) {
   citations.value = [];
   rewrittenQuery.value = '';
   addProcessLog('RETRIEVAL', '收到问题', content);
+  if (webSearchEnabled) {
+    addProcessLog('RETRIEVAL', '联网搜索已开启', '后端会先识别 URL；存在 URL 时先 Tavily Extract，再 Tavily Search，最后把网页资料发给 LLM。');
+  }
 
   const userMessage: ChatMessage = {
     id: `local-user-${Date.now()}`,
@@ -385,7 +394,7 @@ async function sendQuestion(content: string) {
   try {
     const sessionId = await ensureSession(content);
     addProcessLog('RETRIEVAL', '会话确认', `sessionId=${sessionId}`);
-    await streamChatMessage(sessionId, content, {
+    await streamChatMessage(sessionId, content, { webSearchEnabled }, {
       onClientRequest(payload) {
         addProcessLog('REQUEST', `${payload.method} ${payload.url}`, JSON.stringify(payload.body, null, 2));
       },
@@ -403,7 +412,7 @@ async function sendQuestion(content: string) {
         addProcessLog('LLM', '请求 LLM', `携带 ${citations.value.length} 条证据片段`);
       },
       onDebugLog(payload) {
-        const stage = payload.direction.includes('LLM->') ? 'RESPONSE' : 'REQUEST';
+        const stage = payload.direction.includes('->BACKEND') ? 'RESPONSE' : 'REQUEST';
         addProcessLog(stage, `${payload.direction} ${payload.title}`, prettyDetail(payload.detail));
       },
       onAnswerDelta(payload) {
@@ -486,7 +495,6 @@ function parseCitations(raw: string | null | undefined) {
 }
 
 function addProcessLog(stage: ProcessLogItem['stage'], title: string, detail: string) {
-  // 过程日志只保留最近 80 条，避免长时间使用后页面越来越卡。
   processLogs.value = [
     {
       id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -496,7 +504,7 @@ function addProcessLog(stage: ProcessLogItem['stage'], title: string, detail: st
       detail,
     },
     ...processLogs.value,
-  ].slice(0, 80);
+  ];
 }
 
 function prettyDetail(detail: string) {
@@ -521,12 +529,14 @@ async function logout() {
   position: relative;
   height: 100vh;
   display: flex;
+  gap: 0;
   overflow: hidden;
   padding: 14px;
   background:
-    radial-gradient(circle at 9% 18%, rgba(64, 184, 208, 0.16), transparent 25%),
-    radial-gradient(circle at 92% 6%, rgba(37, 90, 143, 0.13), transparent 27%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.74), rgba(238, 242, 247, 0.86)),
+    linear-gradient(115deg, transparent 0 48%, rgba(18, 149, 190, 0.08) 48.5%, transparent 52%),
+    radial-gradient(circle at 9% 18%, rgba(18, 149, 190, 0.16), transparent 25%),
+    radial-gradient(circle at 92% 6%, rgba(22, 63, 107, 0.12), transparent 27%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.74), rgba(237, 248, 252, 0.88)),
     var(--color-soft);
 }
 
@@ -536,10 +546,9 @@ async function logout() {
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(42, 118, 148, 0.07) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(42, 118, 148, 0.05) 1px, transparent 1px),
-    linear-gradient(115deg, transparent 0 48%, rgba(64, 184, 208, 0.12) 49%, transparent 51% 100%);
-  background-size: 32px 32px;
+    linear-gradient(90deg, rgba(18, 149, 190, 0.07) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(18, 149, 190, 0.05) 1px, transparent 1px);
+  background-size: 36px 36px;
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 70%);
 }
 
@@ -610,24 +619,12 @@ async function logout() {
   box-shadow: var(--shadow-md);
   font-size: 13px;
   line-height: 1.6;
-  animation: slideUpError 0.3s ease-out;
 }
 
 .global-error::before {
   content: '错误：';
   color: var(--color-danger);
   font-weight: 700;
-}
-
-@keyframes slideUpError {
-  0% {
-    opacity: 0;
-    transform: translateX(-50%) translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
 }
 
 @media (max-width: 1120px) {

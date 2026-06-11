@@ -30,6 +30,8 @@ $requiredKeys = @(
     "EMBEDDING_BASE_URL",
     "EMBEDDING_API_KEY",
     "EMBEDDING_MODEL",
+    "TAVILY_ENABLED",
+    "TAVILY_CURL_EXECUTABLE",
     "CHROMA_HOST",
     "CHROMA_PORT",
     "CHROMA_TENANT",
@@ -66,6 +68,12 @@ foreach ($key in $requiredKeys) {
 
 if ($values.ContainsKey("JWT_SECRET") -and $values["JWT_SECRET"] -match "change-me") {
     $missing += "JWT_SECRET 仍是示例弱密钥"
+}
+
+if ($values.ContainsKey("TAVILY_ENABLED") -and $values["TAVILY_ENABLED"].ToLowerInvariant() -eq "true") {
+    if (-not $values.ContainsKey("TAVILY_API_KEY") -or [string]::IsNullOrWhiteSpace($values["TAVILY_API_KEY"])) {
+        $missing += "TAVILY_API_KEY（TAVILY_ENABLED=true 时必填）"
+    }
 }
 
 if ($missing.Count -gt 0) {

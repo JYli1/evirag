@@ -10,12 +10,18 @@ public class LlmException extends RuntimeException {
     private final String stage;
     private final String rawSummary;
 
+    /**
+     * 创建 LLM 阶段异常，rawSummary 应该已经脱敏。
+     */
     public LlmException(String rawSummary) {
         super(rawSummary);
         this.stage = "LLM";
         this.rawSummary = rawSummary;
     }
 
+    /**
+     * 带底层异常的构造方法，方便日志保留调用栈。
+     */
     public LlmException(String rawSummary, Throwable cause) {
         super(rawSummary, cause);
         this.stage = "LLM";

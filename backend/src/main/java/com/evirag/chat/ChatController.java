@@ -33,6 +33,9 @@ public class ChatController {
         this.chatService = chatService;
     }
 
+    /**
+     * 查询某个知识库下的会话列表。
+     */
     @GetMapping("/kbs/{knowledgeBaseId}/sessions")
     public ApiResponse<List<ChatSessionResponse>> listSessions(
             @AuthenticationPrincipal JwtPrincipal principal,
@@ -41,6 +44,9 @@ public class ChatController {
         return ApiResponse.success(chatService.listSessions(principal.userId(), knowledgeBaseId));
     }
 
+    /**
+     * 查询不绑定知识库的自由会话列表。
+     */
     @GetMapping("/sessions")
     public ApiResponse<List<ChatSessionResponse>> listFreeSessions(
             @AuthenticationPrincipal JwtPrincipal principal
@@ -48,6 +54,9 @@ public class ChatController {
         return ApiResponse.success(chatService.listSessions(principal.userId(), null));
     }
 
+    /**
+     * 在指定知识库下创建会话。
+     */
     @PostMapping("/kbs/{knowledgeBaseId}/sessions")
     public ApiResponse<ChatSessionResponse> createSession(
             @AuthenticationPrincipal JwtPrincipal principal,
@@ -57,6 +66,9 @@ public class ChatController {
         return ApiResponse.success(chatService.createSession(principal.userId(), knowledgeBaseId, request));
     }
 
+    /**
+     * 创建自由会话。
+     */
     @PostMapping("/sessions")
     public ApiResponse<ChatSessionResponse> createFreeSession(
             @AuthenticationPrincipal JwtPrincipal principal,
@@ -65,6 +77,9 @@ public class ChatController {
         return ApiResponse.success(chatService.createSession(principal.userId(), null, request));
     }
 
+    /**
+     * 查询会话历史消息。
+     */
     @GetMapping("/sessions/{sessionId}/messages")
     public ApiResponse<List<ChatMessageResponse>> listMessages(
             @AuthenticationPrincipal JwtPrincipal principal,
@@ -73,6 +88,11 @@ public class ChatController {
         return ApiResponse.success(chatService.listMessages(principal.userId(), sessionId));
     }
 
+    /**
+     * 流式发送用户问题并返回 SSE。
+     *
+     * <p>该接口不是普通 JSON 响应，前端必须用 fetch 读取 ReadableStream。</p>
+     */
     @PostMapping(value = "/sessions/{sessionId}/messages/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamMessage(
             @AuthenticationPrincipal JwtPrincipal principal,

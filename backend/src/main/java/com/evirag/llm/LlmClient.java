@@ -17,6 +17,9 @@ public interface LlmClient {
 
     /**
      * 流式调用，模型每产生一段增量文本就回调一次。
+     *
+     * @param messages 已经组装好的 OpenAI-compatible messages
+     * @param onDelta 每个增量文本片段的消费函数，通常会转成 SSE answer_delta 事件
      */
     void stream(List<LlmMessage> messages, Consumer<String> onDelta);
 }

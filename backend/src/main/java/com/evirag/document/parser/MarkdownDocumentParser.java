@@ -17,12 +17,14 @@ public class MarkdownDocumentParser implements DocumentParser {
 
     @Override
     public boolean supports(String originalFilename) {
+        // Markdown 文件只按 .md 扩展名识别。
         return originalFilename != null && originalFilename.toLowerCase().endsWith(".md");
     }
 
     @Override
     public ParsedDocument parse(Path path, String originalFilename) {
         try {
+            // Markdown 保留原文，后续 ChunkService 还能继续识别 # 标题。
             String text = Files.readString(path, StandardCharsets.UTF_8);
             List<String> titles = text.lines()
                     .map(String::trim)

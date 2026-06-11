@@ -70,6 +70,7 @@ public class VectorIndexService {
      */
     @Async("documentIndexTaskExecutor")
     public void indexAsync(Long documentId) {
+        // 只传 documentId，不直接传 Document 对象，是为了异步线程重新从数据库读取最新状态，避免拿到过期实体。
         indexDocument(documentId);
     }
 
@@ -93,12 +94,14 @@ public class VectorIndexService {
 
             ParsedDocument parsedDocument = parse(document);
             if (!parsedDocument.success()) {
+                // 解析失败可能是文件损坏、格式不支持、PDF 不能提取文字等，失败信息会显示在文档列表里。
                 fail(document, parsedDocument.error().stage(), "文档解析失败", parsedDocument.error().rawSummary());
                 return;
             }
 
             List<TextChunk> textChunks = chunkService.split(parsedDocument);
             if (textChunks.isEmpty()) {
+                // 空文档不能进入 Embedding，否则会浪费调用次数，并且 Chroma 里也没有可检索内容。
                 fail(document, "CHUNK", "文档解析后没有可索引文本",
                         "Parsed text is blank. 如果这是扫描版 PDF，需要先 OCR；如果是 DOCX，请确认正文或表格中存在可复制文本。");
                 return;
@@ -107,6 +110,7 @@ public class VectorIndexService {
             // embedding 服务负责把每个文本切片变成一组数字向量。后续相似度检索比较的就是这些数字向量。
             List<List<Double>> embeddings = embeddingClient.embed(textChunks.stream().map(TextChunk::text).toList());
             if (embeddings.size() != textChunks.size()) {
+                // 每个切片必须对应一个向量；数量不一致时无法判断哪个向量属于哪个切片，必须终止。
                 fail(document, "EMBEDDING", "Embedding 返回数量不匹配",
                         "expected=" + textChunks.size() + ", actual=" + embeddings.size());
                 return;
@@ -120,12 +124,14 @@ public class VectorIndexService {
             List<ChromaClient.ChromaVector> vectors = buildVectors(document, savedChunks, embeddings);
             chromaClient.upsert(knowledgeBase.getChromaCollection(), vectors);
 
+            // 到这里说明 MySQL 切片和 Chroma 向量都已经写入成功，文档才算真正可检索。
             document.markReady(savedChunks.size());
             documentRepository.save(document);
             log.info("文档索引完成：documentId={}, chunkCount={}", document.getId(), savedChunks.size());
         } catch (EmbeddingException ex) {
             fail(document, ex.getStage(), "Embedding 调用失败", ex.getRawSummary());
         } catch (ChromaException ex) {
+            // Chroma 写入失败时清掉 MySQL 切片，避免页面显示“有切片”，但实际向量库无法检索。
             documentChunkRepository.deleteByDocumentId(document.getId());
             fail(document, ex.getStage(), "Chroma 向量库写入失败", ex.getRawSummary());
         } catch (Exception ex) {
@@ -156,13 +162,16 @@ public class VectorIndexService {
         documentChunkRepository.deleteByDocumentId(document.getId());
         List<DocumentChunk> chunks = new ArrayList<>();
         for (TextChunk textChunk : textChunks) {
+            // vectorId 是 Chroma 里的主键。加入 UUID 可以避免重建索引时旧 id 与新 id 冲突。
             String vectorId = "doc-" + document.getId() + "-chunk-" + textChunk.chunkIndex()
                     + "-" + UUID.randomUUID().toString().replace("-", "");
+            // 第一次保存时 chunk_id 还不存在，所以 metadata 先写 null，等数据库生成主键后再回填。
             chunks.add(DocumentChunk.create(document, textChunk, vectorId, metadataJson(document, textChunk, null)));
         }
         List<DocumentChunk> savedChunks = documentChunkRepository.saveAll(chunks);
         for (int i = 0; i < savedChunks.size(); i++) {
             DocumentChunk savedChunk = savedChunks.get(i);
+            // 回填 chunk_id 后，前端展示引用来源时可以直接定位到 MySQL 的 document_chunks 记录。
             savedChunk.updateMetadata(metadataJson(document, textChunks.get(i), savedChunk.getId()));
         }
         return documentChunkRepository.saveAll(savedChunks);
@@ -177,6 +186,7 @@ public class VectorIndexService {
         for (int i = 0; i < savedChunks.size(); i++) {
             DocumentChunk chunk = savedChunks.get(i);
             Map<String, Object> metadata = metadataMap(document, chunk);
+            // Chroma 同时保存向量、原文片段和 metadata。查询时返回 metadata，RAG 再把它转换成引用信息。
             vectors.add(new ChromaClient.ChromaVector(
                     chunk.getChromaEmbeddingId(),
                     embeddings.get(i),
@@ -208,6 +218,7 @@ public class VectorIndexService {
 
     private Map<String, Object> metadataMap(Document document, DocumentChunk chunk) {
         Map<String, Object> metadata = new LinkedHashMap<>();
+        // 这个 Map 是写给 Chroma 的结构化过滤条件，字段名要和 RagService 查询 where 中使用的字段一致。
         metadata.put("user_id", document.getUserId());
         metadata.put("knowledge_base_id", document.getKnowledgeBaseId());
         metadata.put("document_id", document.getId());
@@ -223,6 +234,7 @@ public class VectorIndexService {
     }
 
     private void fail(Document document, String stage, String userMessage, String rawSummary) {
+        // 失败时不删除文档记录，让用户能在页面看到失败原因，也能手动删除这份失败文档。
         document.markFailed(stage, userMessage, rawSummary);
         documentRepository.save(document);
         log.warn("文档索引失败：documentId={}, stage={}, rawSummary={}",

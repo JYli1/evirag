@@ -15,6 +15,7 @@ public class OpenApiConfig {
 
     @Bean
     public OpenAPI eviRagOpenApi() {
+        // 这里配置的是 Swagger 页面顶部展示的信息，不会影响真实接口路径。
         return new OpenAPI()
                 .info(new Info()
                         .title("EviRAG API")

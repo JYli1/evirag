@@ -28,6 +28,11 @@ public class DocumentController {
         this.documentService = documentService;
     }
 
+    /**
+     * 上传文件到指定知识库。
+     *
+     * <p>接口立即返回 PROCESSING 文档记录，实际解析和向量化在后台异步完成。</p>
+     */
     @PostMapping("/knowledge-bases/{knowledgeBaseId}/documents")
     public ApiResponse<DocumentResponse> upload(
             @AuthenticationPrincipal JwtPrincipal principal,
@@ -37,6 +42,9 @@ public class DocumentController {
         return ApiResponse.success(documentService.upload(principal.userId(), knowledgeBaseId, file));
     }
 
+    /**
+     * 查询单个文档处理状态和元数据。
+     */
     @GetMapping("/documents/{documentId}")
     public ApiResponse<DocumentResponse> get(
             @AuthenticationPrincipal JwtPrincipal principal,
@@ -45,6 +53,9 @@ public class DocumentController {
         return ApiResponse.success(documentService.getById(principal.userId(), documentId));
     }
 
+    /**
+     * 查询文档切片，用于前端切片预览。
+     */
     @GetMapping("/documents/{documentId}/chunks")
     public ApiResponse<List<DocumentChunkResponse>> chunks(
             @AuthenticationPrincipal JwtPrincipal principal,
@@ -53,6 +64,9 @@ public class DocumentController {
         return ApiResponse.success(documentService.listChunks(principal.userId(), documentId));
     }
 
+    /**
+     * 删除文档，同时清理 MySQL 切片和 Chroma 向量。
+     */
     @DeleteMapping("/documents/{documentId}")
     public ApiResponse<Void> delete(
             @AuthenticationPrincipal JwtPrincipal principal,
@@ -62,6 +76,9 @@ public class DocumentController {
         return ApiResponse.success();
     }
 
+    /**
+     * 查询知识库下的文档列表。
+     */
     @GetMapping("/knowledge-bases/{knowledgeBaseId}/documents")
     public ApiResponse<List<DocumentResponse>> list(
             @AuthenticationPrincipal JwtPrincipal principal,

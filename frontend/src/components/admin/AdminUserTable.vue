@@ -2,8 +2,8 @@
   <section class="user-table">
     <header>
       <div>
-        <p>用户管理</p>
-        <h2>账号状态</h2>
+        <p>账号列表</p>
+        <h2>用户状态明细</h2>
       </div>
       <span>{{ users.length }} 个用户</span>
     </header>
@@ -68,7 +68,10 @@ function statusText(status: string) {
 
 <style scoped>
 .user-table {
+  min-height: 0;
+  height: 100%;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 14px;
 }
 
@@ -98,11 +101,13 @@ header h2 {
 }
 
 .table {
+  min-height: 0;
   overflow: auto;
   border: 1px solid var(--color-line);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.74);
   box-shadow: var(--shadow-card);
+  backdrop-filter: blur(18px);
 }
 
 .row {
@@ -125,15 +130,15 @@ header h2 {
 
 .row:not(.head):hover,
 .row.selected {
-  background: #eef5fb;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(223, 245, 250, 0.76));
 }
 
 .row.selected {
-  box-shadow: inset 3px 0 0 rgba(37, 99, 235, 0.64);
+  box-shadow: inset 3px 0 0 var(--color-brand);
 }
 
 .row.head {
-  background: var(--color-panel-muted);
+  background: rgba(255, 255, 255, 0.64);
   color: var(--color-muted);
   font-size: 12px;
   font-weight: 900;
@@ -171,7 +176,7 @@ button {
   height: 32px;
   border: 1px solid var(--color-line);
   border-radius: 12px;
-  background: var(--color-panel);
+  background: rgba(255, 255, 255, 0.72);
   color: var(--color-brand-dark);
   font-weight: 900;
 }

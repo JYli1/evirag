@@ -45,7 +45,7 @@ class RagServiceTest {
                 new RagHistoryMessage("user", "上一轮问题"),
                 new RagHistoryMessage("assistant", "上一轮回答")
         );
-        RagRequest request = new RagRequest(7L, 9L, "kb_collection", "它有什么限制？", history, 3, 0.35);
+        RagRequest request = new RagRequest(7L, 9L, "kb_collection", "它有什么限制？", history, 3, 0.35, "", false);
         when(queryRewriteService.rewrite("它有什么限制？", history))
                 .thenReturn(new RewriteResult("它有什么限制？", "EviRAG 有什么限制？", true));
         when(embeddingClient.embedOne("EviRAG 有什么限制？")).thenReturn(List.of(0.1, 0.2, 0.3));
@@ -91,7 +91,7 @@ class RagServiceTest {
 
     @Test
     void returnsKnowledgeBaseEmptyMessageWhenChromaHasNoResults() {
-        RagRequest request = new RagRequest(7L, 9L, "kb_collection", "系统架构是什么？", List.of(), 5, 0.35);
+        RagRequest request = new RagRequest(7L, 9L, "kb_collection", "系统架构是什么？", List.of(), 5, 0.35, "", false);
         when(queryRewriteService.rewrite("系统架构是什么？", List.of()))
                 .thenReturn(new RewriteResult("系统架构是什么？", "系统架构是什么？", false));
         when(embeddingClient.embedOne("系统架构是什么？")).thenReturn(List.of(0.4, 0.5));
@@ -104,5 +104,40 @@ class RagServiceTest {
         assertThat(response.citations()).isEmpty();
         assertThat(response.lowConfidence()).isTrue();
         verify(llmClient, never()).complete(any());
+    }
+
+    @Test
+    void usesWebSearchContextWhenChromaHasNoResults() {
+        String webContext = "【联网搜索资料】\n[WEB-S1] 标题=EviRAG URL=https://example.com\nEviRAG 支持联网搜索。";
+        RagRequest request = new RagRequest(
+                7L,
+                9L,
+                "kb_collection",
+                "EviRAG 是否支持联网搜索？",
+                List.of(),
+                5,
+                0.35,
+                webContext,
+                true
+        );
+        when(queryRewriteService.rewrite("EviRAG 是否支持联网搜索？", List.of()))
+                .thenReturn(new RewriteResult("EviRAG 是否支持联网搜索？", "EviRAG 是否支持联网搜索？", false));
+        when(embeddingClient.embedOne("EviRAG 是否支持联网搜索？")).thenReturn(List.of(0.4, 0.5));
+        when(chromaClient.query(eq("kb_collection"), eq(List.of(0.4, 0.5)), eq(5), any()))
+                .thenReturn(List.of());
+        when(llmClient.complete(any())).thenReturn("根据联网搜索资料，EviRAG 支持联网搜索。");
+
+        RagResponse response = ragService.answer(request);
+
+        assertThat(response.answer()).contains("联网搜索");
+        assertThat(response.citations()).isEmpty();
+        assertThat(response.lowConfidence()).isFalse();
+
+        ArgumentCaptor<List<LlmMessage>> promptCaptor = ArgumentCaptor.forClass(List.class);
+        verify(llmClient).complete(promptCaptor.capture());
+        assertThat(promptCaptor.getValue())
+                .extracting(LlmMessage::content)
+                .anyMatch(content -> content.contains("【联网搜索资料】"))
+                .anyMatch(content -> content.contains("https://example.com"));
     }
 }

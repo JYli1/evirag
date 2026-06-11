@@ -39,6 +39,7 @@ public class JsonAccessDeniedHandler implements AccessDeniedHandler {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setCharacterEncoding("UTF-8");
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        // 这里直接写 response 输出流，因为请求还没有进入 Controller 层。
         objectMapper.writeValue(response.getOutputStream(), ApiResponse.error(ApiErrorCode.FORBIDDEN));
     }
 }

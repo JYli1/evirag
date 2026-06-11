@@ -7,6 +7,9 @@ package com.evirag.document;
  */
 public class DocumentNotFoundException extends RuntimeException {
 
+    /**
+     * 不接收外部自定义 message，保证对外文案始终不泄露资源归属。
+     */
     public DocumentNotFoundException() {
         super("文档不存在或无权访问");
     }
