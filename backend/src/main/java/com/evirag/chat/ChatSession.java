@@ -21,12 +21,15 @@ public class ChatSession {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 会话所有者。
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    // 为空表示自由聊天；有值表示该会话绑定知识库。
     @Column(name = "knowledge_base_id")
     private Long knowledgeBaseId;
 
+    // 会话列表展示标题。
     @Column(nullable = false, length = 255)
     private String title;
 
@@ -36,6 +39,9 @@ public class ChatSession {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /**
+     * 创建会话时统一处理默认标题和时间。
+     */
     public static ChatSession create(Long userId, Long knowledgeBaseId, String title) {
         Instant now = Instant.now();
         ChatSession session = new ChatSession();
@@ -47,6 +53,9 @@ public class ChatSession {
         return session;
     }
 
+    /**
+     * 用户发送新消息后刷新更新时间，让会话列表按最近使用排序。
+     */
     public void touch() {
         this.updatedAt = Instant.now();
     }

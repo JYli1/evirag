@@ -42,6 +42,7 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
         validateRequest(messages);
         boolean stream = false;
         try {
+            // 非流式调用会等待模型一次性返回完整 JSON，适合重写问题、后台任务等不需要前端逐字显示的场景。
             HttpRequest request = request(messages, stream);
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
@@ -60,6 +61,7 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
         validateRequest(messages);
         boolean stream = true;
         try {
+            // 流式调用把 HTTP 响应按行读取，每读到一个 delta.content 就立刻交给回调，前端才能做打字机效果。
             HttpRequest request = request(messages, stream);
             HttpResponse<Stream<String>> response = httpClient.send(request, HttpResponse.BodyHandlers.ofLines());
             try (Stream<String> lines = response.body()) {
@@ -78,6 +80,8 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
 
     private HttpRequest request(List<LlmMessage> messages, boolean stream) throws Exception {
         Map<String, Object> body = new LinkedHashMap<>();
+        // 请求体保持 OpenAI-compatible 标准字段：model、messages、stream。
+        // 这样 DeepSeek、硅基流动、OpenAI 等供应商只要兼容该协议，就可以通过配置切换。
         body.put("model", appProperties.getLlm().getModel());
         body.put("messages", messages);
         body.put("stream", stream);
@@ -93,11 +97,13 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
     }
 
     private URI chatCompletionsUri() {
+        // 去掉末尾多余斜杠，避免 baseUrl 写成 https://xxx/v1/ 时拼出双斜杠。
         String baseUrl = appProperties.getLlm().getBaseUrl().replaceAll("/+$", "");
         return URI.create(baseUrl + "/chat/completions");
     }
 
     private void validateRequest(List<LlmMessage> messages) {
+        // 这些校验故意放在发请求前，配置缺失时直接抛出可读错误，而不是等到底层 HTTP 客户端报空指针。
         if (messages == null || messages.isEmpty()) {
             throw new LlmException("LLM 消息不能为空");
         }
@@ -113,6 +119,7 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
     }
 
     private String parseCompletion(String body) throws Exception {
+        // 非流式响应的正文位置通常是 choices[0].message.content；如果供应商返回格式不同，这里会暴露原始摘要方便排查。
         JsonNode content = objectMapper.readTree(body)
                 .path("choices")
                 .path(0)
@@ -159,10 +166,12 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
         if (raw == null) {
             return "";
         }
+        // 错误日志要尽量保留定位信息，但不能把 key、token、密码等敏感值输出到前端日志或控制台。
         return raw.replaceAll("(?i)(api[_-]?key|secret|token|password|authorization)=\\S+", "$1=***");
     }
 
     private String httpErrorSummary(int statusCode, String body, boolean stream, List<LlmMessage> messages) {
+        // HTTP 错误通常代表“服务端收到了请求但拒绝/无法处理”，例如模型名不存在、余额不足、鉴权失败。
         Map<String, Object> summary = baseDebugSummary(stream, messages);
         summary.put("errorType", "HTTP_ERROR");
         summary.put("statusCode", statusCode);
@@ -181,6 +190,7 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
 
     private Map<String, Object> baseDebugSummary(boolean stream, List<LlmMessage> messages) {
         Map<String, Object> summary = new LinkedHashMap<>();
+        // 这里返回的是“请求轮廓”，用于用户日志面板展示；不包含完整 API Key。
         summary.put("baseUrl", appProperties.getLlm().getBaseUrl());
         summary.put("url", chatCompletionsUri().toString());
         summary.put("model", appProperties.getLlm().getModel());
@@ -194,6 +204,7 @@ public class OpenAiCompatibleLlmClient implements LlmClient {
         if (throwable == null) {
             return "";
         }
+        // 递归拼接 cause 链，避免 ConnectException 这类顶层 message 为空时丢失真正原因。
         String message = throwable.getMessage();
         String summary = throwable.getClass().getName() + (message == null ? "" : ": " + message);
         Throwable cause = throwable.getCause();

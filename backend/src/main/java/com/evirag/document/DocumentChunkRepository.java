@@ -14,8 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, Long> {
 
+    // 文档切片预览按切片顺序返回。
     List<DocumentChunk> findByDocumentIdOrderByChunkIndexAsc(Long documentId);
 
+    // ChatService 用它判断知识库是否已有可检索切片。
     long countByKnowledgeBaseId(Long knowledgeBaseId);
 
     /**
@@ -26,12 +28,15 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, Lo
     @Query("select count(chunk) from DocumentChunk chunk, Document doc where chunk.documentId = doc.id and doc.userId = :userId")
     long countByUserId(@Param("userId") Long userId);
 
+    // 管理员首页估算全局文档 token。
     @Query("select sum(chunk.tokenCount) from DocumentChunk chunk")
     Long sumTokenCount();
 
+    // 管理员用户详情估算单个用户文档 token。
     @Query("select sum(chunk.tokenCount) from DocumentChunk chunk, Document doc where chunk.documentId = doc.id and doc.userId = :userId")
     Long sumTokenCountByUserId(@Param("userId") Long userId);
 
+    // 删除文档时同步清理 MySQL 切片。
     @Transactional
     @Modifying
     @Query("delete from DocumentChunk chunk where chunk.documentId = :documentId")

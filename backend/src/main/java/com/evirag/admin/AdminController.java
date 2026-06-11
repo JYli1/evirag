@@ -69,6 +69,7 @@ public class AdminController {
             @Valid @RequestBody UpdateUserStatusRequest request,
             HttpServletRequest servletRequest
     ) {
+        // 审计日志需要记录“谁操作、操作哪个用户、从哪里操作”，所以这里把管理员 ID、IP、User-Agent 一并传给服务层。
         return ApiResponse.success(adminDashboardService.updateUserStatus(
                 principal.userId(),
                 userId,

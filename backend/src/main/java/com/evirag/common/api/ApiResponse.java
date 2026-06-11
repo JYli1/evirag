@@ -31,6 +31,7 @@ public class ApiResponse<T> {
     private T data;
 
     public ApiResponse() {
+        // Jackson 反序列化/序列化需要无参构造器；业务代码通常使用下面的静态工厂方法。
     }
 
     private ApiResponse(boolean success, String code, String message, T data) {
@@ -41,10 +42,12 @@ public class ApiResponse<T> {
     }
 
     public static <T> ApiResponse<T> success(T data) {
+        // 成功响应统一带 OK，前端不需要为不同接口单独判断成功码。
         return new ApiResponse<>(true, ApiErrorCode.OK.getCode(), ApiErrorCode.OK.getMessage(), data);
     }
 
     public static ApiResponse<Void> success() {
+        // 适合“发送验证码成功”“删除成功”这类没有 data 的接口。
         return success(null);
     }
 
@@ -53,6 +56,7 @@ public class ApiResponse<T> {
     }
 
     public static ApiResponse<Void> error(ApiErrorCode errorCode, String message) {
+        // message 允许业务异常传入更具体的提示；为空时回退到错误码默认文案。
         String responseMessage = message == null || message.isBlank() ? errorCode.getMessage() : message;
         return new ApiResponse<>(false, errorCode.getCode(), responseMessage, null);
     }

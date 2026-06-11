@@ -37,9 +37,10 @@ public class RagService {
     }
 
     public RagResponse answer(RagRequest request) {
+        // 非流式入口主要给测试或后台调用使用：完整答案生成完后一次性返回。
         RewriteResult rewrite = queryRewriteService.rewrite(request.question(), request.historyMessages());
         List<RagCitation> citations = retrieve(request, rewrite.rewrittenQuery());
-        if (citations.isEmpty()) {
+        if (citations.isEmpty() && !request.webSearchHasResults()) {
             return emptyResponse(rewrite.rewrittenQuery());
         }
         String answer = llmClient.complete(promptMessages(request, citations));
@@ -51,10 +52,12 @@ public class RagService {
         // 1. 根据历史消息改写用户问题；2. 把问题转成向量；3. 去 Chroma 找相似切片；
         // 4. 把切片拼进 prompt；5. 调用 LLM 流式生成答案。
         RewriteResult rewrite = queryRewriteService.rewrite(request.question(), request.historyMessages());
+        // listener 不直接依赖前端类型，RagService 只负责通知阶段；ChatService 再决定如何转成 SSE 事件。
         listener.onRetrievalStart(rewrite.rewrittenQuery());
         List<RagCitation> citations = retrieve(request, rewrite.rewrittenQuery());
         listener.onRetrievalDone(citations);
-        if (citations.isEmpty()) {
+        if (citations.isEmpty() && !request.webSearchHasResults()) {
+            // 没有检索结果时不请求 LLM，直接返回低置信业务提示，避免模型在没有证据时编答案。
             RagResponse response = emptyResponse(rewrite.rewrittenQuery());
             listener.onAnswerDelta(response.answer());
             listener.onAnswerDone(response);
@@ -65,6 +68,7 @@ public class RagService {
         List<LlmMessage> messages = promptMessages(request, citations);
         listener.onLlmRequest(messages);
         llmClient.stream(messages, delta -> {
+            // delta 是模型流式返回的一小段文本。这里累积完整答案，同时把 delta 透传给前端。
             answer.append(delta);
             listener.onAnswerDelta(delta);
         });
@@ -73,6 +77,7 @@ public class RagService {
     }
 
     private List<RagCitation> retrieve(RagRequest request, String rewrittenQuery) {
+        // 查询向量必须使用“改写后的问题”，这样“它是谁”等依赖上下文的问题也能检索到正确内容。
         List<Double> embedding = embeddingClient.embedOne(rewrittenQuery);
         Map<String, Object> where = new LinkedHashMap<>();
         // where 条件限制只能检索当前用户、当前知识库的切片，避免不同用户的数据混在一起。
@@ -88,6 +93,7 @@ public class RagService {
 
     private RagCitation toCitation(ChromaClient.ChromaQueryResult result, double lowScoreThreshold) {
         Map<String, Object> metadata = result.metadata() == null ? Map.of() : result.metadata();
+        // Citation 是给 LLM 和前端共同使用的“证据片段”：既有原文，也有文档/切片定位信息。
         return new RagCitation(
                 result.id(),
                 result.document(),
@@ -106,23 +112,37 @@ public class RagService {
         List<LlmMessage> messages = new ArrayList<>();
         // system 消息是“规则说明”，用来约束模型不要乱编；user 消息里放用户问题和检索到的引用片段。
         messages.add(LlmMessage.system("""
-                你是 EviRAG 的知识库问答助手。只能基于给定引用片段谨慎回答。
-                如果引用片段无法支撑结论，请明确说明“当前知识库中没有找到强相关依据”。
+                你是 EviRAG 的知识库问答助手。请基于给定引用片段和可选的【联网搜索资料】谨慎回答。
+                如果知识库引用片段无法支撑结论，但联网搜索资料可以支撑，请明确说明信息来自联网搜索。
+                如果两类资料都无法支撑结论，请明确说明“当前知识库和联网搜索中没有找到强相关依据”。
                 回答使用中文，避免编造来源。
                 """));
         if (request.historyMessages() != null) {
             for (RagHistoryMessage history : request.historyMessages()) {
+                // 历史消息保留 role，让模型知道哪些内容是用户说的，哪些是助手已经回答过的。
                 messages.add(new LlmMessage(history.role(), history.content()));
             }
         }
-        messages.add(LlmMessage.user("用户问题：\n" + request.question() + "\n\n引用片段：\n" + citationPrompt(citations)));
+        // 用户问题和引用片段放在同一条 user 消息里，能让模型在回答时明确看到“问题”和“证据”。
+        messages.add(LlmMessage.user("用户问题：\n" + request.question()
+                + "\n\n引用片段：\n" + citationPrompt(citations)
+                + webSearchPrompt(request)));
         return messages;
+    }
+
+    private String webSearchPrompt(RagRequest request) {
+        String context = request.webSearchContext();
+        if (context == null || context.isBlank()) {
+            return "";
+        }
+        return "\n\n" + context;
     }
 
     private String citationPrompt(List<RagCitation> citations) {
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < citations.size(); i++) {
             RagCitation citation = citations.get(i);
+            // 编号 [1]、[2] 方便模型和前端都能把答案依据对应回具体片段。
             builder.append("[").append(i + 1).append("] 相似度=")
                     .append(String.format(java.util.Locale.ROOT, "%.4f", citation.score()));
             if (citation.sourceTitle() != null) {
@@ -137,14 +157,17 @@ public class RagService {
     }
 
     private RagResponse emptyResponse(String rewrittenQuery) {
+        // true 表示低置信，前端可以用它显示“缺少依据”的状态。
         return new RagResponse("当前知识库没有可检索文档，或 Chroma 没有返回匹配片段。", rewrittenQuery, List.of(), true);
     }
 
     private boolean lowConfidence(List<RagCitation> citations) {
+        // 只要所有片段都低于阈值，就认为这次回答缺少强依据。
         return !citations.isEmpty() && citations.stream().allMatch(RagCitation::lowScore);
     }
 
     private Long longValue(Object value) {
+        // Chroma metadata 反序列化后可能是 Integer、Long、Double 或 String，这里统一转成 Long。
         if (value instanceof Number number) {
             return number.longValue();
         }
@@ -152,6 +175,7 @@ public class RagService {
     }
 
     private Integer intValue(Object value) {
+        // 同上，chunk_index 在不同 JSON 解析路径下可能不是固定 Java 类型。
         if (value instanceof Number number) {
             return number.intValue();
         }

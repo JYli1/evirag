@@ -13,4 +13,5 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableConfigurationProperties(AppProperties.class)
 public class EnvConfig {
+    // 这个类不需要写 Bean 方法；注解本身就完成了 AppProperties 的注册。
 }

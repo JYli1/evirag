@@ -37,7 +37,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class DocumentService {
 
     private static final Logger log = LoggerFactory.getLogger(DocumentService.class);
-    private static final Set<String> ALLOWED_EXTENSIONS = Set.of("pdf", "txt", "docx", "md");
+    private static final Set<String> ALLOWED_EXTENSIONS = Set.of("pdf", "txt", "doc", "docx", "md");
 
     private final KnowledgeBaseRepository knowledgeBaseRepository;
     private final DocumentRepository documentRepository;
@@ -158,11 +158,13 @@ public class DocumentService {
         }
         long maxBytes = appProperties.getMaxFileSizeMb() * 1024L * 1024L;
         if (file.getSize() > maxBytes) {
+            // 文件大小限制在后端再次校验，不能只依赖前端 input 限制。
             throw new DocumentUploadException("文件大小不能超过 " + appProperties.getMaxFileSizeMb() + "MB");
         }
         String extension = extensionOf(safeOriginalFilename(file.getOriginalFilename()));
         if (!ALLOWED_EXTENSIONS.contains(extension)) {
-            throw new DocumentUploadException("仅支持 PDF、TXT、DOCX、MD 文件");
+            // 只允许当前解析器支持的格式，避免上传后无法处理。
+            throw new DocumentUploadException("仅支持 PDF、TXT、DOC、DOCX、MD 文件");
         }
     }
 
@@ -188,6 +190,7 @@ public class DocumentService {
         if (dot < 0 || dot == filename.length() - 1) {
             return "";
         }
+        // 扩展名统一小写，PDF/TXT/DOC/DOCX/MD 大小写写法都能兼容。
         return filename.substring(dot + 1).toLowerCase(Locale.ROOT);
     }
 
@@ -195,6 +198,7 @@ public class DocumentService {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         try (InputStream inputStream = Files.newInputStream(path);
              DigestInputStream digestInputStream = new DigestInputStream(inputStream, digest)) {
+            // 只读取文件计算哈希，不需要把内容保存在内存里。
             digestInputStream.transferTo(OutputStream.nullOutputStream());
         }
         return HexFormat.of().formatHex(digest.digest());
@@ -215,6 +219,7 @@ public class DocumentService {
 
     private void runAfterCommit(Runnable action) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            // 如果当前没有事务，直接执行；测试中有时会走到该分支。
             action.run();
             return;
         }
@@ -228,6 +233,7 @@ public class DocumentService {
 
     private void cleanupDeletedDocument(String chromaCollection, Long documentId, String storedPath) {
         try {
+            // 先清理向量索引，避免已经删除的文档继续被召回。
             chromaClient.deleteByDocumentId(chromaCollection, documentId);
         } catch (ChromaException ex) {
             log.warn("删除文档后清理 Chroma 向量失败：documentId={}, rawSummary={}", documentId, ex.getRawSummary());
@@ -243,6 +249,7 @@ public class DocumentService {
             Path uploadRoot = Path.of(appProperties.getUploadDir()).toAbsolutePath().normalize();
             Path filePath = Path.of(storedPath).toAbsolutePath().normalize();
             if (!filePath.startsWith(uploadRoot)) {
+                // 防御性检查：即使 storedPath 异常，也不能删除上传目录外的文件。
                 log.warn("跳过删除上传目录外的文档文件：documentId={}, path={}", documentId, filePath);
                 return;
             }

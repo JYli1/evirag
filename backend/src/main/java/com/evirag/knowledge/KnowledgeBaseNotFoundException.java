@@ -7,6 +7,9 @@ package com.evirag.knowledge;
  */
 public class KnowledgeBaseNotFoundException extends RuntimeException {
 
+    /**
+     * 不区分“不存在”和“无权访问”，避免用户通过知识库 ID 探测他人数据。
+     */
     public KnowledgeBaseNotFoundException() {
         super("知识库不存在或无权访问");
     }

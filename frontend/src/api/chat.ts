@@ -1,75 +1,135 @@
 import { http, tokenStorage, type ApiResponse } from './http';
 
 export interface ChatSession {
+  // 会话主键。
   id: number;
+  // 为空表示自由会话，有值表示知识库会话。
   knowledgeBaseId: number | null;
+  // 会话标题。
   title: string;
+  // 创建时间。
   createdAt: string;
+  // 更新时间，发送消息后会刷新。
   updatedAt: string;
 }
 
 export interface ChatMessage {
+  // 历史消息是数字 ID；前端临时 pending 消息会用字符串 ID。
   id?: number | string;
+  // USER 或 ASSISTANT。
   role: 'USER' | 'ASSISTANT' | string;
+  // 消息正文。
   content: string;
+  // 引用证据 JSON 字符串。
   citations?: string | null;
+  // 低置信标记。
   lowConfidence?: boolean | null;
+  // 创建时间。
   createdAt?: string;
+  // true 表示这条助手消息正在接收流式增量。
   pending?: boolean;
 }
 
 export interface RagCitation {
+  // Chroma 向量 ID。
   vectorId: string;
+  // 召回切片文本。
   content: string;
+  // 相似度分数。
   score: number;
+  // 是否低于低相关阈值。
   lowScore: boolean;
+  // 来源文档 ID。
   documentId: number | null;
+  // 来源切片 ID。
   chunkId: number | null;
+  // 来源切片序号。
   chunkIndex: number | null;
+  // 来源标题。
   sourceTitle: string | null;
+  // 来源位置。
   sourceLocation: string | null;
+  // 后端保留的 metadata。
   metadata: Record<string, unknown>;
 }
 
 export interface RagAnswerDone {
+  // 完整答案。
   answer: string;
+  // 用于检索的改写问题。
   rewrittenQuery: string;
+  // 引用证据。
   citations: RagCitation[];
+  // 是否低置信。
   lowConfidence: boolean;
 }
 
 export interface RagStreamHandlers {
+  // 前端发起请求时记录日志。
   onClientRequest?: (payload: { method: string; url: string; body: Record<string, unknown> }) => void;
+  // 后端返回 HTTP 响应头后记录日志。
   onClientResponse?: (payload: { status: number; ok: boolean }) => void;
+  // 后端开始检索。
   onRetrievalStart?: (payload: { query: string }) => void;
+  // 后端完成检索。
   onRetrievalDone?: (payload: { citations: RagCitation[] }) => void;
+  // 后端透出的调试日志，例如 LLM 请求摘要。
   onDebugLog?: (payload: { direction: string; title: string; detail: string }) => void;
+  // LLM 回答增量。
   onAnswerDelta?: (payload: { delta: string }) => void;
+  // 完整回答完成。
   onAnswerDone?: (payload: RagAnswerDone) => void;
+  // 后端错误事件。
   onError?: (payload: { stage?: string; message?: string; rawSummary?: string }) => void;
 }
 
+export interface StreamChatMessageOptions {
+  // true 表示本次请求由后端先调用 Tavily Search/Extract，再把网页资料拼入 LLM prompt。
+  webSearchEnabled?: boolean;
+}
+
+// 查询某个知识库会话或自由会话列表。
 export async function listSessions(knowledgeBaseId?: number | null) {
   const url = knowledgeBaseId ? `/kbs/${knowledgeBaseId}/sessions` : '/sessions';
   const response = await http.get<ApiResponse<ChatSession[]>>(url);
   return response.data.data ?? [];
 }
 
+// 创建知识库会话或自由会话。
 export async function createSession(knowledgeBaseId?: number | null, title?: string) {
   const url = knowledgeBaseId ? `/kbs/${knowledgeBaseId}/sessions` : '/sessions';
   const response = await http.post<ApiResponse<ChatSession>>(url, { title });
   return response.data.data;
 }
 
+// 查询会话历史消息。
 export async function listMessages(sessionId: number) {
   const response = await http.get<ApiResponse<ChatMessage[]>>(`/sessions/${sessionId}/messages`);
   return response.data.data ?? [];
 }
 
-export async function streamChatMessage(sessionId: number, content: string, handlers: RagStreamHandlers) {
+export async function streamChatMessage(
+  sessionId: number,
+  content: string,
+  handlers: RagStreamHandlers,
+): Promise<void>;
+export async function streamChatMessage(
+  sessionId: number,
+  content: string,
+  options: StreamChatMessageOptions,
+  handlers: RagStreamHandlers,
+): Promise<void>;
+export async function streamChatMessage(
+  sessionId: number,
+  content: string,
+  optionsOrHandlers: StreamChatMessageOptions | RagStreamHandlers,
+  maybeHandlers?: RagStreamHandlers,
+) {
+  const options = maybeHandlers ? (optionsOrHandlers as StreamChatMessageOptions) : {};
+  const handlers = maybeHandlers ?? (optionsOrHandlers as RagStreamHandlers);
   const token = tokenStorage().get();
   const url = `/api/sessions/${sessionId}/messages/stream`;
-  const body = { content };
+  const body = { content, webSearchEnabled: Boolean(options.webSearchEnabled) };
   // 这些回调不是发给后端的业务参数，而是给工作台“过程日志”用的：
   // 用户能看到前端发了什么请求、后端是否接收成功、后续检索和 LLM 调用走到哪一步。
   handlers.onClientRequest?.({ method: 'POST', url, body });
@@ -149,8 +209,10 @@ function parsePayload(raw: string) {
     return {};
   }
   try {
+    // 正常情况下 data 是 JSON。
     return JSON.parse(raw);
   } catch {
+    // 如果服务端临时发了纯文本，也把它当作 delta 处理，避免直接丢失。
     return { delta: raw };
   }
 }

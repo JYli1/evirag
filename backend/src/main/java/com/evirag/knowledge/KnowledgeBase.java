@@ -22,18 +22,23 @@ public class KnowledgeBase {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 知识库归属用户；普通用户查询必须同时带 id 和 userId。
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    // 展示名称。
     @Column(nullable = false, length = 128)
     private String name;
 
+    // 可选描述，使用 TEXT 允许较长说明。
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    // Chroma collection 名称，后续向量写入和查询都依赖它。
     @Column(name = "chroma_collection", nullable = false, length = 191)
     private String chromaCollection;
 
+    // 预留状态字段，目前创建后默认为 ACTIVE。
     @Column(nullable = false, length = 32)
     private String status;
 
@@ -43,6 +48,9 @@ public class KnowledgeBase {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /**
+     * 创建知识库时同时确定 MySQL 记录和 Chroma collection 名称。
+     */
     public static KnowledgeBase create(Long userId, String name, String description, String chromaCollection) {
         Instant now = Instant.now();
         KnowledgeBase knowledgeBase = new KnowledgeBase();
@@ -57,10 +65,12 @@ public class KnowledgeBase {
     }
 
     private static String normalizeName(String name) {
+        // 名称前后空格不应该进入数据库。
         return name == null ? "" : name.trim();
     }
 
     private static String normalizeDescription(String description) {
+        // 空描述统一存 null，方便前端判断是否展示描述。
         return description == null || description.isBlank() ? null : description.trim();
     }
 

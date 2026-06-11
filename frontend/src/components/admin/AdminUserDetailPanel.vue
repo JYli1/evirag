@@ -152,13 +152,17 @@ function formatDate(value: string) {
 
 <style scoped>
 .user-detail-panel {
+  min-height: 0;
+  height: 100%;
   display: grid;
   gap: 14px;
   padding: 16px;
   border: 1px solid var(--color-line);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.74);
   box-shadow: var(--shadow-card);
+  backdrop-filter: blur(18px);
+  overflow-y: auto;
 }
 
 header {
@@ -201,7 +205,7 @@ header h2 {
   padding: 12px;
   border: 1px solid var(--color-line);
   border-radius: 14px;
-  background: var(--color-panel-muted);
+  background: rgba(255, 255, 255, 0.58);
 }
 
 .identity-strip div {
@@ -229,7 +233,7 @@ header h2 {
   padding: 10px;
   border: 1px solid var(--color-line);
   border-radius: 14px;
-  background: var(--color-panel-muted);
+  background: rgba(255, 255, 255, 0.62);
 }
 
 .detail-metrics strong {
@@ -245,7 +249,7 @@ header h2 {
   padding: 13px;
   border: 1px solid rgba(37, 99, 235, 0.14);
   border-radius: 14px;
-  background: linear-gradient(180deg, var(--color-panel-muted) 0%, #ffffff 100%);
+  background: linear-gradient(180deg, rgba(232, 248, 252, 0.72) 0%, rgba(255, 255, 255, 0.7) 100%);
 }
 
 .visual-block {
@@ -270,7 +274,7 @@ header h2 {
   display: flex;
   overflow: hidden;
   border-radius: 999px;
-  background: #edf2f7;
+  background: rgba(216, 236, 243, 0.7);
 }
 
 .stack-bar i {
@@ -309,18 +313,18 @@ header h2 {
   height: 10px;
   overflow: hidden;
   border-radius: 999px;
-  background: #edf2f7;
+  background: rgba(216, 236, 243, 0.7);
 }
 
 .bar-row i {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #2563eb;
+  background: linear-gradient(90deg, var(--color-brand-dark), var(--color-brand));
 }
 
 .bar-row i.chat {
-  background: #d97706;
+  background: linear-gradient(90deg, var(--color-accent), #e0a23a);
 }
 
 .recent-grid {

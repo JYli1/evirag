@@ -36,24 +36,40 @@ const metrics = computed(() => [
 }
 
 .metric-card {
+  position: relative;
+  overflow: hidden;
   display: grid;
   gap: 8px;
   min-height: 126px;
   padding: 16px;
   border: 1px solid var(--color-line);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.88);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.74);
   box-shadow: var(--shadow-card);
+  backdrop-filter: blur(18px);
   transition:
     transform 0.16s ease,
     border-color 0.16s ease,
     box-shadow 0.16s ease;
 }
 
+.metric-card::after {
+  content: '';
+  position: absolute;
+  right: -28px;
+  bottom: -38px;
+  width: 104px;
+  height: 104px;
+  border: 1px solid var(--color-strong-line);
+  border-radius: 26px;
+  transform: rotate(18deg);
+  opacity: 0.6;
+}
+
 .metric-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(37, 90, 143, 0.22);
-  box-shadow: 0 18px 46px rgba(33, 53, 83, 0.12);
+  transform: translateY(-3px);
+  border-color: var(--color-strong-line);
+  box-shadow: var(--shadow-glow);
 }
 
 .metric-card span {
@@ -63,7 +79,9 @@ const metrics = computed(() => [
 }
 
 .metric-card strong {
-  color: var(--color-ink);
+  position: relative;
+  z-index: 1;
+  color: var(--color-brand-dark);
   font-size: 32px;
   line-height: 1;
 }

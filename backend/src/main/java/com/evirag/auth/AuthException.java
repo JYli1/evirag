@@ -7,6 +7,9 @@ package com.evirag.auth;
  */
 public class AuthException extends RuntimeException {
 
+    /**
+     * message 会直接进入统一错误响应，所以调用方必须传入可展示且不泄露细节的文案。
+     */
     public AuthException(String message) {
         super(message);
     }

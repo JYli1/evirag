@@ -39,6 +39,9 @@ public enum ApiErrorCode {
 
     private final String code;
 
+    /**
+     * 默认中文提示。具体业务异常可以覆盖 message，但 code 应保持稳定。
+     */
     private final String message;
 
     ApiErrorCode(String code, String message) {

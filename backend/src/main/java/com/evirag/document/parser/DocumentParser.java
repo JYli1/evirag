@@ -11,7 +11,15 @@ import java.nio.file.Path;
  */
 public interface DocumentParser {
 
+    /**
+     * 判断该解析器是否支持当前文件名。
+     *
+     * <p>DocumentService 根据上传文件名选择解析器，因此这里通常检查扩展名。</p>
+     */
     boolean supports(String originalFilename);
 
+    /**
+     * 把磁盘文件解析为统一的 ParsedDocument。
+     */
     ParsedDocument parse(Path path, String originalFilename);
 }

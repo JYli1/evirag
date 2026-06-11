@@ -18,6 +18,7 @@ public class PdfDocumentParser implements DocumentParser {
 
     @Override
     public boolean supports(String originalFilename) {
+        // PDF 只按扩展名选择解析器；扫描件不会自动 OCR。
         return originalFilename != null && originalFilename.toLowerCase().endsWith(".pdf");
     }
 
@@ -28,11 +29,13 @@ public class PdfDocumentParser implements DocumentParser {
             StringBuilder text = new StringBuilder();
             List<ParsedDocument.Position> positions = new ArrayList<>();
             for (int page = 1; page <= document.getNumberOfPages(); page++) {
+                // PDFTextStripper 可以限制页码范围，这里逐页抽取以保留 page-N 来源。
                 stripper.setStartPage(page);
                 stripper.setEndPage(page);
                 String pageText = stripper.getText(document).trim();
                 int start = text.length();
                 if (!text.isEmpty()) {
+                    // 页与页之间插入换行，避免文本直接粘连。
                     text.append(System.lineSeparator());
                     start = text.length();
                 }

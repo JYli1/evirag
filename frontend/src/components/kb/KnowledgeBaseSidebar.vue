@@ -82,34 +82,53 @@ import EviRagLogo from '@/assets/logo/EviRagLogo.vue';
 import DocumentUploader from '@/components/document/DocumentUploader.vue';
 
 const props = defineProps<{
+  // 当前用户知识库列表。
   knowledgeBases: KnowledgeBase[];
+  // 当前知识库文档列表。
   documents: KnowledgeDocument[];
+  // 当前知识库或自由会话列表。
   sessions: ChatSession[];
+  // 当前登录用户。
   user: AuthUser | null;
+  // 当前选中的知识库。
   activeKnowledgeBaseId: number | null;
+  // 当前选中的会话。
   activeSessionId: number | null;
+  // 上传状态。
   uploading: boolean;
+  // 删除中文档 ID。
   deletingDocumentId: number | null;
+  // 是否展示管理员入口。
   isAdmin: boolean;
 }>();
 
 const emit = defineEmits<{
+  // 选择知识库。
   selectKnowledgeBase: [id: number];
+  // 创建知识库。
   createKnowledgeBase: [name: string];
+  // 上传文档。
   uploadDocument: [file: File];
+  // 删除文档。
   deleteDocument: [document: KnowledgeDocument];
+  // 选择会话。
   selectSession: [id: number];
+  // 创建会话。
   createSession: [];
+  // 退出登录。
   logout: [];
 }>();
 
+// 新知识库名称输入框。
 const newName = ref('');
 
+// 账号头像显示邮箱首字母。
 const userInitial = computed(() => (props.user?.email?.slice(0, 1) || 'U').toUpperCase());
 
 function createKb() {
   if (!newName.value) return;
   emit('createKnowledgeBase', newName.value);
+  // 创建请求交给父组件，输入框本地立即清空。
   newName.value = '';
 }
 </script>
@@ -122,12 +141,12 @@ function createKb() {
   gap: 14px;
   padding: 18px;
   border-right: 1px solid var(--color-line);
-  border: 1px solid rgba(216, 224, 235, 0.82);
+  border: 1px solid var(--color-line);
   border-radius: var(--radius-xl);
-  background: rgba(255, 255, 255, 0.88);
+  background: var(--color-crystal);
   overflow-y: auto;
   box-shadow: var(--shadow-card);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(20px);
 }
 
 .sidebar-head,
@@ -152,7 +171,7 @@ function createKb() {
   border-radius: 50%;
   background:
     radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.9), transparent 32%),
-    linear-gradient(135deg, var(--color-brand-dark), var(--color-cyan));
+    linear-gradient(135deg, var(--color-brand-dark), var(--color-brand));
   color: #ffffff;
   font-size: 12px;
   font-weight: 900;
@@ -171,7 +190,7 @@ function createKb() {
   border: 1px solid rgba(42, 118, 148, 0.22);
   border-radius: var(--radius-lg);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(239, 247, 251, 0.92)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(232, 248, 252, 0.92)),
     var(--color-panel);
   box-shadow: var(--shadow-lg);
   opacity: 0;
@@ -235,7 +254,7 @@ function createKb() {
   padding: 0 12px;
   border: 1px solid var(--color-line);
   border-radius: 999px;
-  background: var(--color-panel-muted);
+  background: rgba(255, 255, 255, 0.68);
   color: var(--color-brand-dark);
   font-size: 12px;
   font-weight: 700;
@@ -244,7 +263,7 @@ function createKb() {
 
 .ghost-link:hover {
   border-color: rgba(37, 90, 143, 0.34);
-  background: #eef5fb;
+  background: #e8f8fc;
 }
 
 .ghost-button,
@@ -252,7 +271,7 @@ function createKb() {
 .create-kb button {
   border: 1px solid var(--color-line);
   border-radius: 999px;
-  background: var(--color-panel-muted);
+  background: rgba(255, 255, 255, 0.68);
   color: var(--color-ink);
   font-weight: 700;
 }
@@ -261,7 +280,7 @@ function createKb() {
 .session-head button:hover,
 .create-kb button:hover {
   border-color: rgba(37, 90, 143, 0.34);
-  background: #eef5fb;
+  background: #e8f8fc;
   color: var(--color-brand-dark);
 }
 
@@ -277,7 +296,9 @@ function createKb() {
   padding: 12px;
   border: 1px solid var(--color-line);
   border-radius: var(--radius-lg);
-  background: var(--color-panel-muted);
+  background:
+    linear-gradient(90deg, rgba(18, 149, 190, 0.06), transparent),
+    rgba(255, 255, 255, 0.58);
 }
 
 .create-kb input {
@@ -323,7 +344,7 @@ function createKb() {
   color: var(--color-muted);
   font-size: 11px;
   font-weight: 700;
-  background: var(--color-panel-muted);
+  background: rgba(255, 255, 255, 0.62);
   padding: 2px 8px;
   border-radius: 999px;
   border: 1px solid var(--color-line);
@@ -335,7 +356,7 @@ function createKb() {
   text-align: left;
   border: 1px solid var(--color-line);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.66);
   color: var(--color-ink);
   position: relative;
 }
@@ -369,8 +390,8 @@ function createKb() {
 
 .kb-item.active,
 .session-item.active {
-  border-color: rgba(37, 90, 143, 0.3);
-  background: #eef5fb;
+  border-color: var(--color-strong-line);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(223, 245, 250, 0.76));
   box-shadow: inset 3px 0 0 var(--color-brand);
 }
 
@@ -389,10 +410,10 @@ function createKb() {
 
 .kb-item:hover,
 .session-item:hover {
-  border-color: rgba(37, 90, 143, 0.28);
-  background: #f6f9fc;
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-xs);
+  border-color: var(--color-strong-line);
+  background: rgba(255, 255, 255, 0.82);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
 }
 
 .empty {
@@ -402,7 +423,7 @@ function createKb() {
   font-size: 12px;
   line-height: 1.6;
   text-align: center;
-  background: var(--color-panel-muted);
+  background: rgba(255, 255, 255, 0.58);
   border-radius: var(--radius-md);
   border: 1px dashed var(--color-line);
 }

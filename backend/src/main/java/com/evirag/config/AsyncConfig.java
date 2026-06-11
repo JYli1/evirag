@@ -25,6 +25,7 @@ public class AsyncConfig {
     @Bean(name = "documentIndexTaskExecutor")
     public Executor documentIndexTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        // core 是常驻线程数，max 是队列满时最多扩到的线程数；文档索引通常比聊天更慢，所以单独限流。
         executor.setCorePoolSize(2);
         executor.setMaxPoolSize(4);
         executor.setQueueCapacity(100);
@@ -41,6 +42,7 @@ public class AsyncConfig {
     @Bean(name = "chatStreamTaskExecutor")
     public Executor chatStreamTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        // 聊天流式响应主要等待外部 LLM，线程会被长连接占住，因此并发容量比索引线程池略高。
         executor.setCorePoolSize(4);
         executor.setMaxPoolSize(8);
         executor.setQueueCapacity(200);

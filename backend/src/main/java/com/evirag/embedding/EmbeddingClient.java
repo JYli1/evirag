@@ -18,6 +18,7 @@ public interface EmbeddingClient {
      * 单条文本 embedding 的便捷入口，后续 RAG 检索问题向量化会复用。
      */
     default List<Double> embedOne(String input) {
+        // 默认方法可以让实现类只关心批量 embed；单条文本通过包装成 List 复用同一套逻辑。
         return embed(List.of(input)).get(0);
     }
 }

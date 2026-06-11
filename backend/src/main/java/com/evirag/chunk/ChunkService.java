@@ -21,11 +21,14 @@ public class ChunkService {
     private static final Pattern HEADING_PATTERN = Pattern.compile("^#{1,6}\\s+(.+)$");
     private static final Pattern PARAGRAPH_PATTERN = Pattern.compile("\\S(?:.|\\R)*?(?=(\\R\\s*\\R)|\\z)");
 
+    // 单个切片最大字符数，来自 evirag.chunk.max-chars。
     private final int maxChars;
+    // 超长段落窗口切分时的重叠字符数。
     private final int overlapChars;
 
     @Autowired
     public ChunkService(AppProperties appProperties) {
+        // 生产环境从强类型配置中读取切片参数，避免在代码中写死。
         this(appProperties.getChunk().getMaxChars(), appProperties.getChunk().getOverlapChars());
     }
 
@@ -61,11 +64,13 @@ public class ChunkService {
 
         for (TextBlock block : blocks) {
             if (block.heading()) {
+                // 标题本身也会进入当前切片，同时更新后续段落的 sourceTitle。
                 currentTitle = block.text();
                 currentLocation = appendToCurrent(chunks, currentText, block.text(), currentTitle, block.location(), currentLocation);
                 continue;
             }
             if (block.text().length() > maxChars) {
+                // 单段已经超过上限时，先把前面积累内容落盘，再对该段单独做窗口切分。
                 flushCurrent(chunks, currentText, currentTitle, currentLocation);
                 addWindowChunks(chunks, block, currentTitle);
                 currentLocation = null;
@@ -87,13 +92,16 @@ public class ChunkService {
             String currentLocation
     ) {
         if (!currentText.isEmpty() && currentText.length() + 2 + text.length() > maxChars) {
+            // 再追加会超长时，先形成一个切片，再从当前段落开始新的切片。
             flushCurrent(chunks, currentText, currentTitle, currentLocation);
             currentLocation = null;
         }
         if (currentText.isEmpty()) {
+            // 记录这个切片首个段落的位置，作为整个切片的来源位置。
             currentLocation = blockLocation;
         }
         if (!currentText.isEmpty()) {
+            // 段落之间保留空行，让送入 embedding 的文本更接近原文结构。
             currentText.append(System.lineSeparator()).append(System.lineSeparator());
         }
         currentText.append(text);
@@ -137,6 +145,7 @@ public class ChunkService {
         if (currentText.isEmpty()) {
             return;
         }
+        // chunks.size() 正好是下一个切片序号，避免额外维护计数器。
         chunks.add(new TextChunk(chunks.size(), currentTitle, currentLocation, currentText.toString()));
         currentText.setLength(0);
     }
@@ -153,10 +162,18 @@ public class ChunkService {
             if (end == block.text().length()) {
                 break;
             }
+            // 下一段从 end - overlap 开始，让两个切片共享一小段上下文。
             start = Math.max(0, end - overlapChars);
         }
     }
 
-    private record TextBlock(boolean heading, String text, String location) {
+    private record TextBlock(
+            // true 表示该块是标题，false 表示普通段落。
+            boolean heading,
+            // 块文本。
+            String text,
+            // page-N / paragraph-N 等来源位置。
+            String location
+    ) {
     }
 }

@@ -42,10 +42,13 @@ public class AuthService {
     @Transactional
     public AuthTokenResponse register(RegisterRequest request) {
         String email = normalizeEmail(request.email());
+        // 注册必须先消费验证码，防止没有邮箱所有权就创建账号。
         emailVerificationService.verifyCode(email, VerificationPurpose.REGISTER, request.code());
         if (userRepository.existsByEmail(email)) {
+            // 不直接说“邮箱已存在”，降低账号枚举风险。
             throw new AuthException("注册信息无效");
         }
+        // passwordEncoder 是 BCryptPasswordEncoder，保存的是哈希而不是明文密码。
         User user = userRepository.save(User.create(email, passwordEncoder.encode(request.password())));
         return issueToken(user);
     }
@@ -56,6 +59,7 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AuthException(GENERIC_LOGIN_FAILURE));
         if (!user.isActive() || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            // 邮箱不存在、密码错误、账号禁用都返回同一文案，避免暴露账号状态。
             throw new AuthException(GENERIC_LOGIN_FAILURE);
         }
         return issueToken(user);
@@ -64,6 +68,7 @@ public class AuthService {
     @Transactional
     public void resetPassword(PasswordResetRequest request) {
         String email = normalizeEmail(request.email());
+        // 重置密码验证码和注册验证码用途不同，不能混用。
         emailVerificationService.verifyCode(email, VerificationPurpose.PASSWORD_RESET, request.code());
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AuthException("密码重置请求无效"));
@@ -80,6 +85,7 @@ public class AuthService {
     }
 
     private String normalizeEmail(String email) {
+        // 邮箱统一小写，保证登录、注册、重置密码使用同一套匹配规则。
         return email == null ? "" : email.trim().toLowerCase();
     }
 }

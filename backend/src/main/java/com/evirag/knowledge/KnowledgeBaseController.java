@@ -27,6 +27,9 @@ public class KnowledgeBaseController {
         this.knowledgeBaseService = knowledgeBaseService;
     }
 
+    /**
+     * 为当前登录用户创建知识库。
+     */
     @PostMapping
     public ApiResponse<KnowledgeBaseResponse> create(
             @AuthenticationPrincipal JwtPrincipal principal,
@@ -35,11 +38,17 @@ public class KnowledgeBaseController {
         return ApiResponse.success(knowledgeBaseService.create(principal.userId(), request));
     }
 
+    /**
+     * 查询当前登录用户的知识库列表。
+     */
     @GetMapping
     public ApiResponse<List<KnowledgeBaseResponse>> list(@AuthenticationPrincipal JwtPrincipal principal) {
         return ApiResponse.success(knowledgeBaseService.listByCurrentUser(principal.userId()));
     }
 
+    /**
+     * 查询当前用户拥有的单个知识库。
+     */
     @GetMapping("/{knowledgeBaseId}")
     public ApiResponse<KnowledgeBaseResponse> get(
             @AuthenticationPrincipal JwtPrincipal principal,

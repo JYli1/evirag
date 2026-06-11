@@ -38,10 +38,13 @@ import { marked } from 'marked';
 import type { ChatMessage } from '@/api/chat';
 
 const props = defineProps<{
+  // 当前会话所有消息。
   messages: ChatMessage[];
+  // 检索阶段提示文本，例如“正在检索...”
   retrievalText: string;
 }>();
 
+// 每条正在打字的消息当前已经展示到哪个内容。
 const typedContent = ref<Record<string, string>>({});
 let typingTimer: number | undefined;
 
@@ -65,6 +68,7 @@ const messageTargets = computed(() => {
   }
   const latest = props.messages.find((message) => messageKey(message) === latestKey);
   if (latest?.content) {
+    // target 是后端已经流式返回的完整当前内容，定时器会逐步追上它。
     targets[latestKey] = latest.content;
   }
   return targets;
@@ -77,9 +81,11 @@ watch(
     const next = { ...typedContent.value };
     for (const [key, target] of Object.entries(targets)) {
       if (!(key in next)) {
+        // 新的 pending 消息从空字符串开始打字。
         next[key] = '';
       }
       if (next[key].length > target.length || !target.startsWith(next[key])) {
+        // 如果后端内容被整体替换，直接同步到目标，避免打字状态错位。
         next[key] = target;
       }
       if (next[key].length < target.length) {
@@ -88,6 +94,7 @@ watch(
     }
     for (const key of Object.keys(next)) {
       if (!(key in targets)) {
+        // 当前消息完成后清理缓存，历史消息直接渲染。
         delete next[key];
       }
     }
@@ -107,6 +114,7 @@ onBeforeUnmount(() => {
 
 function startTyping() {
   if (typingTimer) {
+    // 已有定时器时不重复创建。
     return;
   }
   typingTimer = window.setInterval(() => {
@@ -116,6 +124,7 @@ function startTyping() {
     for (const [key, target] of Object.entries(targets)) {
       const current = next[key] || '';
       if (current.length < target.length) {
+        // 大段内容追赶时步长稍大，避免流式回答堆积太多。
         const step = target.length - current.length > 160 ? 8 : 2;
         next[key] = target.slice(0, current.length + step);
         hasPending = true;
@@ -139,10 +148,12 @@ function renderMessage(message: ChatMessage) {
 }
 
 function isTypingMessage(message: ChatMessage) {
+  // 只有最新 pending 助手消息返回 true。
   return messageKey(message) === latestTypingKey.value;
 }
 
 function messageKey(message: ChatMessage) {
+  // 临时消息没有数据库 ID 时，用角色、时间和内容前缀构造相对稳定的 key。
   return String(message.id || `${message.role}-${message.createdAt || ''}-${message.content.slice(0, 24)}`);
 }
 </script>
@@ -155,7 +166,7 @@ function messageKey(message: ChatMessage) {
   padding: 34px min(6vw, 76px);
   overflow-y: auto;
   background:
-    radial-gradient(circle at 16% 0%, rgba(37, 90, 143, 0.05), transparent 24%),
+    radial-gradient(circle at 16% 0%, rgba(18, 149, 190, 0.06), transparent 24%),
     transparent;
 }
 
@@ -170,8 +181,9 @@ function messageKey(message: ChatMessage) {
   padding: 34px;
   border: 1px solid var(--color-line);
   border-radius: var(--radius-xl);
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.74);
   box-shadow: var(--shadow-md);
+  backdrop-filter: blur(18px);
   text-align: center;
 }
 
@@ -182,7 +194,7 @@ function messageKey(message: ChatMessage) {
   place-items: center;
   border: 1px solid rgba(37, 90, 143, 0.18);
   border-radius: 50%;
-  background: #eef5fb;
+  background: linear-gradient(135deg, #ffffff, #dff5fa);
   color: var(--color-brand-dark);
   font-size: 20px;
   font-weight: 900;
@@ -211,18 +223,6 @@ function messageKey(message: ChatMessage) {
   grid-template-columns: 38px minmax(0, 1fr);
   gap: 14px;
   max-width: 960px;
-  animation: slideIn 0.2s ease-out;
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
 }
 
 .message.user {
@@ -255,18 +255,24 @@ function messageKey(message: ChatMessage) {
 }
 
 .message.user .avatar {
-  background: #f7f2e8;
-  color: var(--color-accent);
-  border-color: rgba(163, 106, 31, 0.22);
+  background: linear-gradient(135deg, var(--color-brand-dark), var(--color-brand));
+  color: #ffffff;
+  border-color: var(--color-strong-line);
+  box-shadow: var(--shadow-glow);
 }
 
 .bubble {
   padding: 14px 16px;
   border: 1px solid var(--color-line);
   border-radius: 18px 18px 18px 6px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.86);
   color: var(--color-ink);
   box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(14px);
+}
+
+.message.assistant .bubble {
+  box-shadow: inset 4px 0 0 rgba(183, 232, 242, 0.9), var(--shadow-sm);
 }
 
 .bubble:hover {
@@ -276,13 +282,28 @@ function messageKey(message: ChatMessage) {
 
 .message.user .bubble {
   border-radius: 18px 18px 6px 18px;
-  border-color: rgba(37, 90, 143, 0.22);
-  background: linear-gradient(135deg, #173f68, #255a8f);
-  color: #ffffff;
+  border-color: var(--color-strong-line);
+  background: linear-gradient(135deg, #e8f8fc, #d6f1f8);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.message.user .bubble .markdown-body {
+  color: var(--color-ink);
 }
 
 .message.user .bubble:hover {
   box-shadow: var(--shadow-glow);
+}
+
+.message.user .markdown-body :deep(code) {
+  background: rgba(18, 149, 190, 0.12);
+}
+
+.message.user .markdown-body :deep(pre) {
+  border-color: rgba(18, 149, 190, 0.18);
+  background: rgba(10, 31, 51, 0.84);
+  color: #ffffff;
 }
 
 .pending-text {
@@ -408,7 +429,7 @@ function messageKey(message: ChatMessage) {
   padding: 8px 12px;
   border-left: 3px solid var(--color-brand-light);
   border-radius: 8px;
-  background: rgba(37, 90, 143, 0.07);
+  background: rgba(18, 149, 190, 0.07);
 }
 
 .markdown-body :deep(a) {
@@ -429,17 +450,8 @@ function messageKey(message: ChatMessage) {
   border: 1px solid var(--color-line);
 }
 
-.message.user .markdown-body :deep(code) {
-  background: rgba(255, 255, 255, 0.14);
-}
-
-.message.user .markdown-body :deep(pre) {
-  border-color: rgba(255, 255, 255, 0.18);
-  background: rgba(10, 20, 34, 0.48);
-}
-
 .message.user .markdown-body :deep(a) {
-  color: #d7f6ff;
+  color: var(--color-brand-dark);
 }
 
 .low-confidence {
@@ -469,22 +481,10 @@ function messageKey(message: ChatMessage) {
   font-size: 12px;
   font-weight: 600;
   box-shadow: var(--shadow-sm);
-  animation: slideUp 0.2s ease-out;
 }
 
 .retrieval-state::before {
   content: '';
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .retrieval-spinner {

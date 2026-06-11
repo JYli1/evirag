@@ -7,5 +7,10 @@ package com.evirag.auth;
  */
 public interface VerificationEmailSender {
 
+    /**
+     * 发送验证码。
+     *
+     * <p>接口只描述“要发什么”，SMTP 地址、端口和授权码由具体实现读取配置。</p>
+     */
     void sendVerificationCode(String email, VerificationPurpose purpose, String code);
 }

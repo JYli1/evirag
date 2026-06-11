@@ -81,7 +81,7 @@
             <version>${springdoc.version}</version>
         </dependency>
 
-        <!-- 文档解析：PDFBox 用于 PDF 文本抽取，Apache POI 用于 DOCX 段落读取。 -->
+        <!-- 文档解析：PDFBox 用于 PDF 文本抽取，Apache POI 用于 DOCX 和老式 DOC 段落读取。 -->
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
@@ -90,6 +90,11 @@
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-scratchpad</artifactId>
             <version>${poi.version}</version>
         </dependency>
 

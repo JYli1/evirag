@@ -14,6 +14,7 @@ public class EviRagApplication {
         // Spring Boot 默认不会主动读取 backend/.env，所以这里必须先把本地配置加载进来。
         // 否则数据库密码、JWT 密钥、模型 Key 等占位符在启动时会读不到真实值。
         DotenvBootstrap.load();
+        // run 方法会启动 Spring 容器：扫描 @Component/@Service/@Controller，把它们创建成可注入的 Bean。
         SpringApplication.run(EviRagApplication.class, args);
     }
 }

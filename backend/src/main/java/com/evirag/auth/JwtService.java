@@ -36,6 +36,7 @@ public class JwtService {
 
     @Autowired
     public JwtService(AppProperties appProperties, Clock clock) {
+        // Spring 运行时走这个构造器，从 AppProperties 读取 .env/application.yml 绑定后的配置。
         this(appProperties.getJwt().getSecret(), appProperties.getJwt().getExpireMinutes(), clock);
         if (appProperties.getJwt().hasWeakSecret()) {
             throw new IllegalStateException("JWT 密钥不能使用空值或默认值");
@@ -43,6 +44,7 @@ public class JwtService {
     }
 
     public JwtService(String secret, long expireMinutes, Clock clock) {
+        // HS256 是对称签名，密钥过短很容易被猜出，所以启动阶段直接拒绝弱密钥。
         if (secret == null || secret.isBlank() || secret.length() < 32 || "change-me".equals(secret)) {
             throw new IllegalStateException("JWT 密钥不能使用空值、默认值或过短值");
         }
@@ -58,8 +60,10 @@ public class JwtService {
 
     public AuthJwt createToken(User user) {
         long expiresAt = Instant.now(clock).plusSeconds(expireMinutes * 60).getEpochSecond();
+        // JWT 分三段：header.payload.signature。前两段是 Base64URL 编码的 JSON。
         Map<String, Object> header = Map.of("alg", "HS256", "typ", "JWT");
         Map<String, Object> payload = new LinkedHashMap<>();
+        // sub 放用户 ID，是后端识别登录用户的核心字段。
         payload.put("sub", user.getId());
         payload.put("email", user.getEmail());
         payload.put("role", user.getRole());
@@ -72,6 +76,7 @@ public class JwtService {
         try {
             String[] parts = token.split("\\.");
             if (parts.length != 3) {
+                // JWT 必须是三段式，格式不对直接拒绝。
                 throw new AuthException("无效令牌");
             }
             Map<String, Object> header = OBJECT_MAPPER.readValue(
@@ -80,10 +85,12 @@ public class JwtService {
                     }
             );
             if (!"HS256".equals(header.get("alg")) || !isCompatibleJwtType(header.get("typ"))) {
+                // 只接受本服务生成的 HS256 token。
                 throw new AuthException("无效令牌");
             }
             String unsigned = parts[0] + "." + parts[1];
             if (!signatureMatches(sign(unsigned), parts[2])) {
+                // 重新计算签名并比较，防止 token 被篡改。
                 throw new AuthException("无效令牌");
             }
             Map<String, Object> payload = OBJECT_MAPPER.readValue(
@@ -93,6 +100,7 @@ public class JwtService {
             );
             long exp = ((Number) payload.get("exp")).longValue();
             if (Instant.now(clock).getEpochSecond() >= exp) {
+                // 过期 token 不再允许访问接口。
                 throw new AuthException("无效令牌");
             }
             Long userId = ((Number) payload.get("sub")).longValue();
@@ -116,6 +124,7 @@ public class JwtService {
         try {
             Mac mac = Mac.getInstance(HMAC_ALGORITHM);
             mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), HMAC_ALGORITHM));
+            // 签名覆盖 header 和 payload，任何一段被改都会导致签名校验失败。
             return BASE64_URL_ENCODER.encodeToString(mac.doFinal(unsigned.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception ex) {
             throw new IllegalStateException("JWT 签名失败", ex);
@@ -124,6 +133,7 @@ public class JwtService {
 
     private boolean signatureMatches(String expected, String actual) {
         try {
+            // MessageDigest.isEqual 尽量避免普通字符串比较带来的时序差异。
             return MessageDigest.isEqual(BASE64_URL_DECODER.decode(expected), BASE64_URL_DECODER.decode(actual));
         } catch (IllegalArgumentException ex) {
             return false;
@@ -137,6 +147,11 @@ public class JwtService {
     public record AuthJwt(String token, long expiresAt) {
     }
 
+    /**
+     * 放入 Spring SecurityContext 的当前用户信息。
+     *
+     * <p>Controller 通过 {@code @AuthenticationPrincipal JwtPrincipal principal} 直接拿到该对象。</p>
+     */
     public record JwtPrincipal(Long userId, String email, String role) {
     }
 }

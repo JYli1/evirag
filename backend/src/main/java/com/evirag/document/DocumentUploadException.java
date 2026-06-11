@@ -7,10 +7,16 @@ package com.evirag.document;
  */
 public class DocumentUploadException extends RuntimeException {
 
+    /**
+     * 用于文件类型、大小等可预期业务校验失败。
+     */
     public DocumentUploadException(String message) {
         super(message);
     }
 
+    /**
+     * 用于保存文件等底层 IO 失败，保留 cause 方便后端日志排查。
+     */
     public DocumentUploadException(String message, Throwable cause) {
         super(message, cause);
     }

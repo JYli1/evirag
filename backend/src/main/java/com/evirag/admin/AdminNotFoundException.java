@@ -7,6 +7,9 @@ package com.evirag.admin;
  */
 public class AdminNotFoundException extends RuntimeException {
 
+    /**
+     * 管理端资源不存在时抛出，最终由 GlobalExceptionHandler 转换为统一 JSON。
+     */
     public AdminNotFoundException(String message) {
         super(message);
     }

@@ -42,9 +42,11 @@ public class OpenAiCompatibleEmbeddingClient implements EmbeddingClient {
         validateRequest(inputs);
         try {
             Map<String, Object> body = new LinkedHashMap<>();
+            // Embedding 可以一次传入多段文本。批量请求比逐段请求更快，也能减少外部 API 调用次数。
             body.put("model", appProperties.getEmbedding().getModel());
             body.put("input", inputs);
 
+            // 这里同样使用 OpenAI-compatible 协议，最终地址为 EMBEDDING_BASE_URL + /embeddings。
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(embeddingUri())
                     .timeout(Duration.ofSeconds(appProperties.getEmbedding().getTimeoutSeconds()))
@@ -57,6 +59,7 @@ public class OpenAiCompatibleEmbeddingClient implements EmbeddingClient {
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 throw new EmbeddingException("HTTP " + response.statusCode() + ": " + sanitize(response.body()));
             }
+            // 返回值必须和 inputs 一一对应，后续会按同一个下标把向量写回对应的文档切片。
             return parseEmbeddings(response.body(), inputs.size());
         } catch (EmbeddingException ex) {
             throw ex;
@@ -66,6 +69,7 @@ public class OpenAiCompatibleEmbeddingClient implements EmbeddingClient {
     }
 
     private void validateRequest(List<String> inputs) {
+        // 配置错误是最常见的 Embedding 问题，提前校验能把错误定位到 .env，而不是让索引流程静默失败。
         if (inputs == null || inputs.isEmpty()) {
             throw new EmbeddingException("Embedding 输入不能为空");
         }
@@ -81,6 +85,7 @@ public class OpenAiCompatibleEmbeddingClient implements EmbeddingClient {
     }
 
     private URI embeddingUri() {
+        // baseUrl 既可以写成 https://xxx/v1，也可以写成 https://xxx/v1/，这里统一成无尾斜杠再拼路径。
         String baseUrl = appProperties.getEmbedding().getBaseUrl().replaceAll("/+$", "");
         return URI.create(baseUrl + "/embeddings");
     }
@@ -101,10 +106,12 @@ public class OpenAiCompatibleEmbeddingClient implements EmbeddingClient {
             if (!embeddingNode.isArray()) {
                 throw new EmbeddingException("Embedding 响应缺少 embedding 数组：" + sanitize(body));
             }
+            // 每个 embedding 是一组 double 数字，后续 Chroma 用这些数字计算相似度。
             List<Double> vector = new ArrayList<>();
             for (JsonNode value : embeddingNode) {
                 vector.add(value.asDouble());
             }
+            // 大多数供应商会返回 index 字段；如果没有，就使用当前循环下标兜底。
             items.add(new EmbeddingItem(item.path("index").asInt(i), vector));
         }
         return items.stream()
@@ -121,9 +128,13 @@ public class OpenAiCompatibleEmbeddingClient implements EmbeddingClient {
         if (raw == null) {
             return "";
         }
+        // 供应商错误响应可能会回显请求信息，输出前统一做一次敏感字段脱敏。
         return raw.replaceAll("(?i)(api[_-]?key|secret|token|password|authorization)=\\S+", "$1=***");
     }
 
+    /**
+     * 暂存单个向量和它对应的输入下标，方便最后恢复成与请求输入一致的顺序。
+     */
     private record EmbeddingItem(int index, List<Double> embedding) {
     }
 }

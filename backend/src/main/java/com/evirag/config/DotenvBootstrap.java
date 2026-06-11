@@ -69,6 +69,7 @@ public final class DotenvBootstrap {
         try {
             List<String> lines = Files.readAllLines(dotenvPath, StandardCharsets.UTF_8);
             for (String line : lines) {
+                // 每一行都独立解析；坏格式会被跳过，不会影响后面的有效配置。
                 applyLine(line, environmentReader);
             }
         } catch (IOException ex) {
@@ -98,6 +99,7 @@ public final class DotenvBootstrap {
             return;
         }
 
+        // 写入 System property 后，application.yml 中的 ${KEY:default} 就能读取到该值。
         System.setProperty(key, value);
     }
 
@@ -136,6 +138,7 @@ public final class DotenvBootstrap {
     private static Optional<Path> resolveDotenvPath() {
         String explicitPath = System.getProperty(DOTENV_PATH_PROPERTY);
         if (explicitPath != null && !explicitPath.isBlank()) {
+            // 测试或 IDEA 特殊运行配置可以通过 -Devirag.dotenv.path=... 指定实际 .env。
             return Optional.of(Path.of(explicitPath));
         }
 

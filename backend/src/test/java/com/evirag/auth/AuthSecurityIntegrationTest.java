@@ -267,6 +267,9 @@ class AuthSecurityIntegrationTest {
     }
 
     @TestConfiguration
+    /**
+     * 测试专用 Bean，用来观察受保护接口里解析到的 JwtPrincipal。
+     */
     static class TestEndpoints {
 
         @Bean
@@ -277,6 +280,9 @@ class AuthSecurityIntegrationTest {
 
     @RestController
     @RequestMapping
+    /**
+     * 只在测试上下文中注册的控制器，用来验证不同权限路径的真实过滤结果。
+     */
     static class TestController {
 
         @GetMapping("/api/test/protected")

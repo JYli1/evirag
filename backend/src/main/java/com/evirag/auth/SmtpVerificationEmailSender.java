@@ -25,9 +25,11 @@ public class SmtpVerificationEmailSender implements VerificationEmailSender {
     public void sendVerificationCode(String email, VerificationPurpose purpose, String code) {
         String from = appProperties.getMail().getFrom();
         if (from == null || from.isBlank()) {
+            // 真实邮件发不出去时直接失败，避免前端误以为验证码已发送。
             throw new VerificationCodeException("邮件发件人未配置");
         }
 
+        // SimpleMailMessage 适合纯文本验证码邮件，避免引入 HTML 模板复杂度。
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(from);
         message.setTo(email);
@@ -37,6 +39,7 @@ public class SmtpVerificationEmailSender implements VerificationEmailSender {
     }
 
     private String subjectOf(VerificationPurpose purpose) {
+        // 根据验证码用途区分邮件标题，用户能看出当前操作场景。
         return purpose == VerificationPurpose.PASSWORD_RESET ? "EviRAG 密码重置验证码" : "EviRAG 注册验证码";
     }
 }

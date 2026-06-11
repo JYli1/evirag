@@ -18,12 +18,14 @@ public class TxtDocumentParser implements DocumentParser {
 
     @Override
     public boolean supports(String originalFilename) {
+        // 简单文本文件只按 .txt 扩展名识别。
         return originalFilename != null && originalFilename.toLowerCase().endsWith(".txt");
     }
 
     @Override
     public ParsedDocument parse(Path path, String originalFilename) {
         try {
+            // 当前约定文本文件使用 UTF-8；若用户上传其他编码，解析失败会进入 FAILED 状态。
             String text = Files.readString(path, StandardCharsets.UTF_8);
             return ParsedDocument.success(text, List.of(), paragraphPositions(text));
         } catch (Exception ex) {
@@ -36,6 +38,7 @@ public class TxtDocumentParser implements DocumentParser {
         int cursor = 0;
         int index = 1;
         for (String paragraph : text.split("\\R\\s*\\R|\\R")) {
+            // 用 cursor 限制搜索范围，避免重复段落总是匹配到第一次出现的位置。
             int start = text.indexOf(paragraph, cursor);
             if (!paragraph.isBlank() && start >= 0) {
                 int end = start + paragraph.length();

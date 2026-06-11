@@ -20,6 +20,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -67,6 +68,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
         return build(HttpStatus.BAD_REQUEST, ApiErrorCode.BAD_REQUEST, ApiErrorCode.BAD_REQUEST.getMessage());
+    }
+
+    /**
+     * 处理 Spring/Tomcat 在进入 Controller 前拦截的大文件上传。
+     *
+     * <p>如果没有这个分支，超过 multipart 限制时会落到兜底异常，前端只能看到“服务器内部错误”。</p>
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+        return build(HttpStatus.BAD_REQUEST, ApiErrorCode.VALIDATION_FAILED, "上传文件超过服务器允许的最大大小");
     }
 
     /**
@@ -132,14 +143,17 @@ public class GlobalExceptionHandler {
     }
 
     private String formatFieldError(FieldError error) {
+        // 字段级错误来自 @NotBlank、@Email、@Size 等注解，例如 email: 不能为空。
         return error.getField() + ": " + error.getDefaultMessage();
     }
 
     private String formatObjectError(ObjectError error) {
+        // 对象级错误来自跨字段校验，例如 AppProperties 中 overlap 必须小于 max。
         return error.getObjectName() + ": " + error.getDefaultMessage();
     }
 
     private String joinMessages(String fieldErrors, String globalErrors) {
+        // 字段错误和对象错误都可能存在，统一拼成前端可以直接展示的一行文本。
         if (fieldErrors == null || fieldErrors.isBlank()) {
             return globalErrors;
         }
@@ -150,6 +164,7 @@ public class GlobalExceptionHandler {
     }
 
     private ResponseEntity<ApiResponse<Void>> build(HttpStatus status, ApiErrorCode code, String message) {
+        // ResponseEntity 负责 HTTP 状态码，ApiResponse 负责业务错误码，两者一起给前端完整语义。
         return ResponseEntity.status(status).body(ApiResponse.error(code, message));
     }
 }

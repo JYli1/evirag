@@ -43,24 +43,25 @@ chroma-data/ 本地 Chroma 向量库数据目录，运行后生成
 - 邮箱验证码注册、登录、找回密码
 - JWT 鉴权和管理员角色
 - 多知识库管理
-- PDF、DOCX、TXT、Markdown 文档上传
+- PDF、DOC、DOCX、TXT、Markdown 文档上传
 - 文档解析、切片、embedding、Chroma 入库
 - 文档删除和失败文档清理
 - 文档切片预览
 - 支持无知识库的自由问答
 - 支持有知识库的 RAG 问答
+- 可选 Tavily 联网搜索：输入框可开启搜索，含 URL 时先 Extract 再 Search，无 URL 时直接 Search
 - SSE 流式问答
 - 最新回复打字机效果
 - 动态 Markdown 渲染
 - 引用证据和相似度展示
-- 用户可见过程日志，包含前端请求、后端响应、LLM 请求摘要和 LLM 响应摘要
+- 用户可见过程日志，包含前端请求、后端响应、Tavily 请求/响应、LLM 请求摘要和 LLM 响应摘要
 - 管理员面板，包含用户信息、文档数量、token 估算、配置状态、审计日志等
 - 环境配置检查脚本
 
 ## 项目优点
 
 - 链路完整：从文档上传、解析、切片、向量化、检索到 LLM 回答都有实现。
-- 可观察性强：前端能看到请求后端、检索、请求 LLM、收到响应等关键过程。
+- 可观察性强：前端能看到请求后端、联网搜索、检索、请求 LLM、收到响应等关键过程。
 - 便于调试：LLM 和 Embedding 的 HTTP 错误会返回较完整的脱敏摘要，方便定位模型名、baseUrl、网络和服务商问题。
 - 安全边界清楚：真实密钥统一放入 `backend/.env`，不提交到 Git；JWT 密钥禁止使用默认弱值。
 - 前端体验完整：三栏工作台、证据面板、账号悬浮卡、过程日志、Markdown 和打字机效果都已集成。
@@ -165,6 +166,10 @@ EMBEDDING_BASE_URL=你的 embedding OpenAI-compatible 地址
 EMBEDDING_API_KEY=你的 embedding API Key
 EMBEDDING_MODEL=服务商支持的 embedding 模型名
 
+TAVILY_ENABLED=true
+TAVILY_API_KEY=你的 Tavily API Key
+TAVILY_CURL_EXECUTABLE=curl
+
 CHROMA_HOST=127.0.0.1
 CHROMA_PORT=8000
 ```
@@ -176,6 +181,9 @@ CHROMA_PORT=8000
 - 不要把聊天模型名填到 `EMBEDDING_MODEL`。
 - 使用 OpenAI 官方接口时，`LLM_BASE_URL=https://api.openai.com/v1`。
 - 使用第三方兼容接口时，`LLM_BASE_URL` 必须改成对应服务商地址。
+- 如果暂时不用联网搜索，把 `TAVILY_ENABLED=false`；如果开启搜索，必须填写 `TAVILY_API_KEY`。
+- 联网搜索依赖系统 `curl` 命令。Windows 10/11 通常自带 curl；如果后端提示找不到 curl，把 `TAVILY_CURL_EXECUTABLE` 改成 `curl.exe` 或 curl 完整路径。
+- 输入框开启搜索后，后端会先用正则识别 URL：包含 URL 时先调用 Tavily Extract，再调用 Tavily Search；不包含 URL 时直接调用 Tavily Search，最后把网页资料拼入 LLM prompt。
 - 修改 `.env` 后需要重启后端。
 
 检查配置：
@@ -274,7 +282,7 @@ http://你的电脑局域网 IP:3000
 
 1. 注册账号并登录。
 2. 创建知识库。
-3. 上传 PDF、DOCX、TXT 或 Markdown 文档。
+3. 上传 PDF、DOC、DOCX、TXT 或 Markdown 文档。
 4. 等待文档状态变为“已就绪”。
 5. 可点击文档的“预览”查看切片内容。
 6. 在聊天框提问。
@@ -331,6 +339,23 @@ LLM ConnectException
 - `LLM_BASE_URL` 和 `LLM_MODEL` 不属于同一个服务商
 
 例如 `LLM_BASE_URL=https://api.openai.com/v1` 时，不应该填写 Gemini 或其他服务商的模型名。
+
+### Tavily 搜索失败
+
+如果过程日志里看到：
+
+```text
+WEB_SEARCH
+```
+
+通常是：
+
+- `TAVILY_API_KEY` 没填或填错
+- `TAVILY_ENABLED=true` 但本机找不到 `curl`
+- 网络无法访问 `https://api.tavily.com`
+- Tavily credits 不足或请求参数被服务端拒绝
+
+先确认 `backend/.env` 中的 `TAVILY_API_KEY`，再在 PowerShell 里执行 `curl.exe --version` 检查本机 curl 是否可用。
 
 ### Chroma collection 不存在
 

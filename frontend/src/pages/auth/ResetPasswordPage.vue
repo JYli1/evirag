@@ -118,12 +118,18 @@ onBeforeUnmount(() => window.clearInterval(timer));
 }
 
 .secondary-action {
-  min-height: 46px;
+  min-height: 50px;
   border: 1px solid var(--color-strong-line);
-  border-radius: 12px;
-  background: var(--color-panel-muted);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.72);
   color: var(--color-brand-dark);
   font-weight: 900;
+  box-shadow: var(--shadow-sm);
+}
+
+.secondary-action:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #e8f8fc;
 }
 
 .notice {

@@ -38,8 +38,9 @@ defineProps<{
   padding: 16px;
   border: 1px solid var(--color-line);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.74);
   box-shadow: var(--shadow-card);
+  backdrop-filter: blur(18px);
 }
 
 header {
@@ -84,7 +85,7 @@ header span {
   padding: 12px;
   border: 1px solid var(--color-line);
   border-radius: 16px;
-  background: var(--color-panel-muted);
+  background: rgba(255, 255, 255, 0.62);
 }
 
 .config-item strong,

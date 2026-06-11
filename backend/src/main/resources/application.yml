@@ -36,6 +36,12 @@ spring:
           auth: true
           ssl:
             enable: ${MAIL_SSL:false}
+  servlet:
+    multipart:
+      # Spring/Tomcat 会先解析 multipart 请求；默认单文件只有 1MB。
+      # 这里必须和 evirag.max-file-size-mb 保持一致，否则请求还没进 DocumentService 就会被容器拦截。
+      max-file-size: ${APP_MAX_FILE_SIZE_MB:20}MB
+      max-request-size: ${APP_MAX_REQUEST_SIZE_MB:${APP_MAX_FILE_SIZE_MB:20}}MB
 
 springdoc:
   swagger-ui:
@@ -73,3 +79,14 @@ evirag:
     top-k: ${RAG_TOP_K:5}
     low-score-threshold: ${RAG_LOW_SCORE_THRESHOLD:0.35}
     history-turns: ${RAG_HISTORY_TURNS:4}
+  web-search:
+    enabled: ${TAVILY_ENABLED:true}
+    base-url: ${TAVILY_BASE_URL:https://api.tavily.com}
+    api-key: ${TAVILY_API_KEY:}
+    curl-executable: ${TAVILY_CURL_EXECUTABLE:curl}
+    search-depth: ${TAVILY_SEARCH_DEPTH:basic}
+    extract-depth: ${TAVILY_EXTRACT_DEPTH:basic}
+    max-results: ${TAVILY_MAX_RESULTS:5}
+    timeout-seconds: ${TAVILY_TIMEOUT_SECONDS:25}
+    per-source-max-chars: ${TAVILY_PER_SOURCE_MAX_CHARS:1200}
+    context-max-chars: ${TAVILY_CONTEXT_MAX_CHARS:6000}
